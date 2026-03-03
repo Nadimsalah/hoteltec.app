@@ -243,7 +243,11 @@ const Dashboard = ({ activeTab: initialTab }) => {
                     .nav-item.active svg { color: #3b82f6 !important; transform: scale(1.1) translateY(-2px); }
                     .nav-text { display: block !important; font-size: 10px !important; font-weight: 800 !important; margin: 1px 0 0 0 !important; letter-spacing: -0.01em; }
                     .main-content { padding-bottom: 90px !important; margin-left: 0 !important; width: 100% !important; }
-                    .top-bar { padding: 10px 16px !important; }
+                    .dashboard-body { padding: 16px !important; overflow-x: hidden; }
+                    .details-main-card { padding: 20px !important; }
+                    .details-title { font-size: 24px !important; }
+                    .order-image-container { height: 200px !important; margin-bottom: 20px !important; }
+                    .top-bar { padding: 10px 16px !important; justify-content: space-between !important; }
                     .stats-container { display: flex !important; overflow-x: auto; padding-bottom: 8px; gap: 12px !important; scroll-snap-type: x mandatory; -ms-overflow-style: none; scrollbar-width: none; }
                     .stats-container::-webkit-scrollbar { display: none; }
                     .stat-card { min-width: 140px; scroll-snap-align: start; padding: 16px !important; }

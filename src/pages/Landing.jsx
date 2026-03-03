@@ -97,6 +97,7 @@ const Landing = () => {
                 .hero-section {
                     display: flex;
                     align-items: center;
+                    width: 100%;
                     max-width: 1440px;
                     margin: 20px auto 0;
                     padding: 0 64px 80px;
@@ -176,6 +177,7 @@ const Landing = () => {
 
                 .hero-right {
                     flex: 1.2;
+                    width: 100%;
                     position: relative;
                     height: 640px;
                     border-radius: 32px;
@@ -373,9 +375,8 @@ const Landing = () => {
             `}</style>
 
             <header className="landing-header">
-                <div className="landing-logo">
+                <div className="landing-logo" onClick={() => navigate('/')}>
                     <img src="/hoteltec.png" alt="Hoteltec Logo" />
-                    Hoteltec
                 </div>
 
                 <nav className="nav-links">
