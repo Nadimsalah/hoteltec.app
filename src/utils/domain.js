@@ -8,10 +8,11 @@ const isLocalDev = () => {
 
 /**
  * Extracts the hotel slug from the current URL.
- * Strategy:
- *   - LOCAL DEV:  subdomain  -> ibis.localhost:5173 -> "ibis"
- *   - PRODUCTION: path-based -> hoteltec.app/store/ibis -> "ibis"  (via useParams)
- *                 subdomain  -> ibis.hoteltec.app -> "ibis" (if wildcard DNS is configured)
+ * Supports:
+ *   - ibis.localhost:5173 -> "ibis"  (local dev)
+ *   - ibis.hoteltec.app   -> "ibis"  (production)
+ *   - hoteltec.app        -> null    (main dashboard)
+ *   - www.hoteltec.app    -> null    (main site)
  */
 export const getSubdomain = () => {
     const hostname = window.location.hostname;
@@ -22,45 +23,37 @@ export const getSubdomain = () => {
         return parts.length > 1 ? parts[0] : null;
     }
 
-    // Case 2: Production subdomain -> ibis.hoteltec.app
-    // Only treat as subdomain if NOT the root domain (hoteltec.app = 2 parts, www.hoteltec.app = 3 parts with www)
+    // Case 2: Production subdomain -> ibis.hoteltec.app (3+ parts)
     if (parts.length >= 3) {
         if (parts[0] === 'www') return null;
         if (parts[0] === 'app') return null;
-        // It's a real hotel subdomain!
         return parts[0];
     }
 
-    // Case 3: Production path-based -> the slug comes from useParams() in the component
     return null;
 };
 
 /**
- * Generates a URL for a specific hotel based on the current environment.
+ * Generates a subdomain URL for a specific hotel.
+ * Always uses subdomain format in both local and production.
  *
- * LOCAL DEV:   uses subdomain  -> ibis.localhost:5173/store
- * PRODUCTION:  uses path-based -> hoteltec.app/store/ibis
- *              (safer - works without wildcard DNS configuration)
+ * LOCAL DEV:   ibis.localhost:5173/store
+ * PRODUCTION:  ibis.hoteltec.app/store
  *
  * @param {string} slug - The hotel slug
  * @param {string} path - The internal path (e.g., /store)
  */
 export const getHotelUrl = (slug, path = '/store') => {
     const { protocol, port, hostname } = window.location;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
 
-    // LOCAL DEV: use subdomain routing
+    // LOCAL DEV: ibis.localhost:5173
     if (isLocalDev()) {
         const portStr = port ? `:${port}` : '';
-        return `${protocol}//${slug}.localhost${portStr}${path}`;
+        return `${protocol}//${slug}.localhost${portStr}${cleanPath}`;
     }
 
-    // PRODUCTION: use path-based routing (always works, no wildcard DNS needed)
-    // Format: https://hoteltec.app/store/ibis
-    const baseDomain = hostname.includes('hoteltec.app')
-        ? 'hoteltec.app'
-        : hostname;
-
-    // Build path-based URL: /store/slug  OR  /store/slug/subpath
-    const cleanPath = path === '/store' ? `/store/${slug}` : `/store/${slug}${path}`;
-    return `${protocol}//${baseDomain}${cleanPath}`;
+    // PRODUCTION: ibis.hoteltec.app
+    const baseDomain = hostname.includes('hoteltec.app') ? 'hoteltec.app' : hostname;
+    return `${protocol}//${slug}.${baseDomain}${cleanPath}`;
 };
