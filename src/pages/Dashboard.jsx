@@ -132,14 +132,18 @@ const Dashboard = ({ activeTab: initialTab }) => {
                 setStoreId(store.id);
                 setStoreData(store);
 
-                // Fetch staff presets & check active staff
-                const listRaw = localStorage.getItem(`hoteltec_staff_${store.id}`);
-                if (listRaw) {
-                    const list = JSON.parse(listRaw);
-                    const activeId = localStorage.getItem(`hoteltec_active_${store.id}`);
-                    if (activeId) {
-                        const s = list.find(x => x.id === activeId);
-                        if (s) setActiveStaff(s);
+                // Fetch active staff based on saved session internally
+                const activeId = localStorage.getItem(`hoteltec_active_${store.id}`);
+                if (activeId) {
+                    const { data: staffData } = await supabase
+                        .from('staff_profiles')
+                        .select('*')
+                        .eq('store_id', store.id)
+                        .eq('id', activeId)
+                        .maybeSingle();
+
+                    if (staffData) {
+                        setActiveStaff(staffData);
                     }
                 }
 

@@ -31,7 +31,7 @@ const StaffLogin = () => {
         fetchStore();
     }, [storeId]);
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
 
@@ -40,21 +40,33 @@ const StaffLogin = () => {
             return;
         }
 
-        const list = JSON.parse(localStorage.getItem(`hoteltec_staff_${storeId}`) || '[]');
+        try {
+            // Find matching staff member from Supabase database securely
+            const { data: staffMember, error: fetchError } = await supabase
+                .from('staff_profiles')
+                .select('*')
+                .eq('store_id', storeId)
+                .ilike('name', username)
+                .eq('pin', pin)
+                .maybeSingle();
 
-        // Find matching staff member
-        const staffMember = list.find(s =>
-            s.name.toLowerCase() === username.toLowerCase() &&
-            s.pin === pin
-        );
+            if (fetchError) {
+                console.error(fetchError);
+                setError('A database error occurred');
+                return;
+            }
 
-        if (staffMember) {
-            // Save active staff session locally
-            localStorage.setItem(`hoteltec_active_${storeId}`, staffMember.id);
-            localStorage.setItem('hoteltec_active_store', storeId);
-            navigate('/dash');
-        } else {
-            setError('Invalid username or PIN code');
+            if (staffMember) {
+                // Save active staff session locally
+                localStorage.setItem(`hoteltec_active_${storeId}`, staffMember.id);
+                localStorage.setItem('hoteltec_active_store', storeId);
+                navigate('/dash');
+            } else {
+                setError('Invalid username or PIN code');
+            }
+        } catch (err) {
+            console.error(err);
+            setError('Network error, please try again.');
         }
     };
 

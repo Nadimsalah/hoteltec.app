@@ -21,11 +21,16 @@ const StaffManagement = ({ storeId }) => {
     const AVAILABLE_PAGES = ['Orders', 'My Store', 'Stories', 'Analytics', 'Billing', 'Settings', 'Team'];
 
     useEffect(() => {
-        // Load staff from local storage for this unique store
-        const savedStaff = localStorage.getItem(`hoteltec_staff_${storeId}`);
-        if (savedStaff) {
-            setStaffList(JSON.parse(savedStaff));
-        }
+        const fetchStaff = async () => {
+            const { data, error } = await supabase
+                .from('staff_profiles')
+                .select('*')
+                .eq('store_id', storeId)
+                .order('created_at', { ascending: true });
+
+            if (data) setStaffList(data);
+        };
+        fetchStaff();
 
         // Fetch store categories exactly as they exist in Supabase
         const fetchCategories = async () => {
@@ -40,29 +45,54 @@ const StaffManagement = ({ storeId }) => {
         fetchCategories();
     }, [storeId]);
 
-    const saveStaffList = (newList) => {
-        setStaffList(newList);
-        localStorage.setItem(`hoteltec_staff_${storeId}`, JSON.stringify(newList));
-    };
-
-    const handleSaveStaff = () => {
+    const handleSaveStaff = async () => {
         if (!formData.name || !formData.pin) return;
 
-        let updatedList;
+        let res;
         if (editingStaffId) {
-            updatedList = staffList.map(s => s.id === editingStaffId ? { ...formData, id: editingStaffId } : s);
+            // Update
+            res = await supabase
+                .from('staff_profiles')
+                .update({
+                    name: formData.name,
+                    pin: formData.pin,
+                    pages: formData.pages,
+                    categories: formData.categories
+                })
+                .eq('id', editingStaffId)
+                .select();
         } else {
-            updatedList = [...staffList, { ...formData, id: Date.now().toString() }];
+            // Insert
+            res = await supabase
+                .from('staff_profiles')
+                .insert([{
+                    store_id: storeId,
+                    name: formData.name,
+                    pin: formData.pin,
+                    pages: formData.pages,
+                    categories: formData.categories
+                }])
+                .select();
         }
 
-        saveStaffList(updatedList);
+        if (res.data) {
+            if (editingStaffId) {
+                setStaffList(staffList.map(s => s.id === editingStaffId ? res.data[0] : s));
+            } else {
+                setStaffList([...staffList, res.data[0]]);
+            }
+        }
+
         setShowModal(false);
         setEditingStaffId(null);
         setFormData({ name: '', pin: '', pages: ['Orders'], categories: [] });
     };
 
-    const deleteStaff = (id) => {
-        saveStaffList(staffList.filter(s => s.id !== id));
+    const deleteStaff = async (id) => {
+        const { error } = await supabase.from('staff_profiles').delete().eq('id', id);
+        if (!error) {
+            setStaffList(staffList.filter(s => s.id !== id));
+        }
     };
 
     const openEdit = (staff) => {
