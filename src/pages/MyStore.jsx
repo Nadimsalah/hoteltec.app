@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import QRTemplateModal from '../components/QRTemplateModal';
+import { getHotelUrl } from '../utils/domain';
 
 // ─── Storage Helper ──────────────────────────────────────────────────────────
 const uploadImage = async (file, bucket = 'store-assets') => {
@@ -894,8 +895,7 @@ const MyStore = ({ onSwitch }) => {
                             className="store-action-btn preview-btn"
                             onClick={() => {
                                 const slug = storeData.slug || storeData.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-                                const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                                window.open(isLocalhost ? `http://${window.location.host}/store/${slug}` : `https://${slug}.hoteltec.app`, '_blank');
+                                window.open(getHotelUrl(slug, '/store'), '_blank');
                             }}
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>

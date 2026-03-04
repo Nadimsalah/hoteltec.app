@@ -11,9 +11,12 @@ import Landing from './pages/Landing';
 import StaffLogin from './pages/StaffLogin';
 import { supabase } from './supabaseClient';
 
+import { getSubdomain } from './utils/domain';
+
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const subdomain = getSubdomain();
 
   useEffect(() => {
     // Check current session
@@ -34,20 +37,23 @@ function App() {
     return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white', fontSize: '18px', fontWeight: '600' }}>Loading Hoteltec...</div>;
   }
 
-  const hostname = window.location.hostname;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  let subdomain = null;
-  if (!isLocalhost && hostname !== 'hoteltec.app' && !hostname.startsWith('www.')) {
-    subdomain = hostname.split('.')[0];
-  }
-
-  if (subdomain && subdomain !== 'app') {
+  // If we are on a hotel subdomain, restrict to the store experience
+  if (subdomain) {
     return (
       <Router>
         <div className="app-container">
           <Routes>
+            {/* The root on a subdomain is the store itself */}
             <Route path="/" element={<HotelStore presetSlug={subdomain} />} />
+            <Route path="/store" element={<HotelStore presetSlug={subdomain} />} />
+            
+            {/* Store related paths */}
+            <Route path="/store/products" element={<HotelStore presetSlug={subdomain} />} />
+            <Route path="/store/cart" element={<HotelStore presetSlug={subdomain} />} />
             <Route path="/success" element={<ThankYou />} />
+            <Route path="/store/success" element={<ThankYou />} />
+
+            {/* Fallback to store root if path not found on subdomain */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

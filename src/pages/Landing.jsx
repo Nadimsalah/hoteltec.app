@@ -1,14 +1,31 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 import {
     Star, Heart, Wand2, ArrowUpRight, CheckCircle2,
     Crown, ShieldCheck, ArrowRight, Sparkles, Activity,
     Smartphone, Video, LayoutDashboard, Globe, HeartHandshake, CreditCard,
-    Building2
+    Building2, Calendar, Clock, ChevronLeft, ChevronRight, X, User
 } from 'lucide-react';
+import { PhoneInput } from 'react-international-phone';
+import 'react-international-phone/style.css';
 
 const Landing = () => {
     const navigate = useNavigate();
+    const [session, setSession] = useState(null);
+    const [showDemoModal, setShowDemoModal] = useState(false);
+
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
 
     const ultimatePlan = {
         name: 'Hoteltec Enterprise',
@@ -801,97 +818,97 @@ const Landing = () => {
                 }
 
                 .solutions-header {
-                    text - align: center;
-                margin-bottom: 60px;
+                    text-align: center;
+                    margin-bottom: 60px;
                 }
 
                 .solutions-header h2 {
-                    font - size: 42px;
-                font-weight: 800;
-                letter-spacing: -0.04em;
-                color: #0f172a;
-                margin: 0 0 16px 0;
+                    font-size: 42px;
+                    font-weight: 800;
+                    letter-spacing: -0.04em;
+                    color: #0f172a;
+                    margin: 0 0 16px 0;
                 }
 
                 .solutions-header p {
                     color: #64748b;
-                font-size: 20px;
-                font-weight: 500;
-                max-width: 600px;
-                margin: 0 auto;
+                    font-size: 20px;
+                    font-weight: 500;
+                    max-width: 600px;
+                    margin: 0 auto;
                 }
 
                 .solutions-grid {
                     display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 32px;
-                width: 100%;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 32px;
+                    width: 100%;
                 }
 
                 .solution-card {
                     background: #f8fafc;
-                border: 1px solid #f1f5f9;
-                border-radius: 24px;
-                padding: 40px 32px;
-                transition: all 0.3s ease;
-                position: relative;
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
-                align-items: flex-start;
+                    border: 1px solid #f1f5f9;
+                    border-radius: 24px;
+                    padding: 40px 32px;
+                    transition: all 0.3s ease;
+                    position: relative;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
                 }
 
                 .solution-card:hover {
                     background: #ffffff;
-                transform: translateY(-8px);
-                box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
-                border-color: #e2e8f0;
+                    transform: translateY(-8px);
+                    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
+                    border-color: #e2e8f0;
                 }
 
                 .solution-icon-wrapper {
                     width: 56px;
-                height: 56px;
-                border-radius: 16px;
-                background: #eff6ff;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin-bottom: 24px;
-                color: #3b82f6;
-                transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    height: 56px;
+                    border-radius: 16px;
+                    background: #eff6ff;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-bottom: 24px;
+                    color: #3b82f6;
+                    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
                 }
 
                 .solution-card:hover .solution-icon-wrapper {
                     background: #3b82f6;
-                color: #ffffff;
-                transform: scale(1.1) rotate(5deg);
+                    color: #ffffff;
+                    transform: scale(1.1) rotate(5deg);
                 }
 
                 .solution-card h3 {
-                    font - size: 22px;
-                font-weight: 700;
-                color: #0f172a;
-                margin-bottom: 12px;
-                line-height: 1.3;
+                    font-size: 22px;
+                    font-weight: 700;
+                    color: #0f172a;
+                    margin-bottom: 12px;
+                    line-height: 1.3;
                 }
 
                 .solution-card p {
-                    font - size: 15px;
-                color: #64748b;
-                line-height: 1.6;
-                margin: 0;
+                    font-size: 15px;
+                    color: #64748b;
+                    line-height: 1.6;
+                    margin: 0;
                 }
 
                 @media (max-width: 1024px) {
-                    .solutions - grid {grid - template - columns: repeat(2, 1fr); }
+                    .solutions-grid { grid-template-columns: repeat(2, 1fr); }
                 }
 
                 @media (max-width: 768px) {
-                    .solutions - section {padding: 60px 24px; }
-                .solutions-header h2 {font - size: 32px; }
-                .solutions-header p {font - size: 16px; }
-                .solutions-grid {grid - template - columns: 1fr; }
-                .solution-card {padding: 32px 24px; }
+                    .solutions-section { padding: 60px 24px; }
+                    .solutions-header h2 { font-size: 32px; }
+                    .solutions-header p { font-size: 16px; }
+                    .solutions-grid { grid-template-columns: 1fr; }
+                    .solution-card { padding: 32px 24px; }
                 }
             `}</style>
 
@@ -906,7 +923,13 @@ const Landing = () => {
                 </nav>
 
                 <div className="header-actions">
-                    <button className="btn-signin" onClick={() => navigate('/login')}>Sign in</button>
+                    {session ? (
+                        <button className="btn-signin" onClick={() => navigate('/dash')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            Dashboard <LayoutDashboard size={14} />
+                        </button>
+                    ) : (
+                        <button className="btn-signin" onClick={() => navigate('/login')}>Sign in</button>
+                    )}
                 </div>
             </header>
 
@@ -928,7 +951,7 @@ const Landing = () => {
                         <button className="btn-primary-dark" onClick={() => navigate('/signup')}>
                             Try App For Free
                         </button>
-                        <button className="btn-secondary-light" onClick={() => navigate('/signup')}>
+                        <button className="btn-secondary-light" onClick={() => setShowDemoModal(true)}>
                             Book A Demo
                         </button>
                     </div>
@@ -1086,6 +1109,432 @@ const Landing = () => {
                     </div>
                 </div>
             </section>
+            {showDemoModal && <DemoModal onClose={() => setShowDemoModal(false)} />}
+
+            <style>{`
+                /* Demo Modal Styles - Calendly Inspired */
+                .demo-modal-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(15, 23, 42, 0.4);
+                    backdrop-filter: blur(12px);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                }
+                .demo-modal-container {
+                    background: #ffffff;
+                    width: 100%;
+                    max-width: 960px;
+                    border-radius: 32px;
+                    display: flex;
+                    overflow: hidden;
+                    box-shadow: 0 50px 100px -20px rgba(15, 23, 42, 0.25);
+                    animation: modalScaleUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+                    position: relative;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    max-height: 90vh;
+                }
+                @keyframes modalScaleUp {
+                    from { transform: scale(0.9) translateY(20px); opacity: 0; }
+                    to { transform: scale(1) translateY(0); opacity: 1; }
+                }
+                .demo-info-pane {
+                    width: 38%;
+                    padding: 48px;
+                    border-right: 1px solid #f1f5f9;
+                    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+                    display: flex;
+                    flex-direction: column;
+                }
+                .demo-booking-pane {
+                    flex: 1;
+                    padding: 48px;
+                    background: #ffffff;
+                    display: flex;
+                    flex-direction: column;
+                    overflow-y: auto;
+                }
+                .demo-close-btn {
+                    position: absolute;
+                    top: 24px;
+                    right: 24px;
+                    background: #f1f5f9;
+                    border: none;
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    color: #64748b;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    z-index: 10;
+                }
+                .demo-close-btn:hover { 
+                    background: #0f172a; 
+                    color: #ffffff; 
+                    transform: rotate(90deg);
+                }
+
+                .calendar-nav {
+                    background: transparent;
+                    border: none;
+                    cursor: pointer;
+                    color: #3b82f6;
+                    transition: all 0.2s;
+                    border-radius: 12px;
+                    width: 44px;
+                    height: 44px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .calendar-nav:hover {
+                    background: #eff6ff;
+                    transform: translateY(-2px);
+                    color: #2563eb;
+                }
+                .calendar-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 32px;
+                }
+                .calendar-grid {
+                    display: grid;
+                    grid-template-columns: repeat(7, 1fr);
+                    gap: 4px;
+                    text-align: center;
+                }
+                .calendar-day-label {
+                    font-size: 11px;
+                    font-weight: 800;
+                    color: #94a3b8;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                    margin-bottom: 16px;
+                }
+                .calendar-day {
+                    aspect-ratio: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 14px;
+                    font-size: 14px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                    color: #1e293b;
+                }
+                .calendar-day.active { 
+                    background: #0f172a; 
+                    color: #ffffff; 
+                    box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.3);
+                    transform: scale(1.1);
+                }
+                .calendar-day:hover:not(.active):not(.disabled) { 
+                    background: #f1f5f9;
+                    color: #3b82f6;
+                }
+                .calendar-day.disabled { 
+                    color: #e2e8f0; 
+                    cursor: not-allowed; 
+                }
+
+                .time-slot-btn {
+                    padding: 14px;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 12px;
+                    background: #ffffff;
+                    color: #3b82f6;
+                    font-weight: 800;
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    text-align: center;
+                }
+                .time-slot-btn:hover {
+                    border-color: #3b82f6;
+                    background: #eff6ff;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+                }
+
+                .demo-details-form input, .demo-details-form select {
+                    width: 100%;
+                    padding: 12px 16px;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    background: #ffffff;
+                    font-size: 15px;
+                    font-weight: 500;
+                    color: #1e293b;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    outline: none;
+                }
+                .demo-details-form input:focus, .demo-details-form select:focus {
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+                    transform: translateY(-1px);
+                }
+                @media (max-width: 900px) {
+                    .demo-modal-container { flex-direction: column; overflow-y: auto; height: 95vh; }
+                    .demo-info-pane { width: 100%; border-right: none; border-bottom: 1px solid #f1f5f9; padding: 32px; }
+                    .demo-info-pane .landing-logo img { height: 32px; }
+                    .demo-booking-pane { width: 100%; padding: 32px; }
+                }
+            `}</style>
+        </div>
+    );
+};
+
+const DemoModal = ({ onClose }) => {
+    const [selectedDate, setSelectedDate] = useState(15);
+    const [selectedTime, setSelectedTime] = useState(null);
+    const [isConfirmed, setIsConfirmed] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [bookingDetails, setBookingDetails] = useState({ name: '', email: '', hotelName: '', phone: '', countryCode: '+1' });
+    const [monthOffset, setMonthOffset] = useState(0);
+
+    // Simple calendar logic for 2026 (for demo purposes)
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const now = new Date(2026, 2 + monthOffset, 1); // Starting from March (index 2)
+    const currentMonthName = monthNames[now.getMonth()];
+    const currentYear = now.getFullYear();
+
+    const daysInMonth = new Date(currentYear, now.getMonth() + 1, 0).getDate();
+    const firstDayOfMonth = new Date(currentYear, now.getMonth(), 1).getDay();
+
+    const emptyDays = Array.from({ length: firstDayOfMonth }, (_, i) => null);
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+    const times = ["09:00", "10:30", "13:00", "14:30", "16:00", "17:30"];
+
+    const handleConfirm = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+
+        try {
+            const [hours, minutes] = selectedTime.split(':');
+            const scheduledAt = new Date(currentYear, now.getMonth(), selectedDate, parseInt(hours), parseInt(minutes));
+
+            // 1. Save to Database
+            const { error: dbError } = await supabase.from('demo_bookings').insert([{
+                name: bookingDetails.name,
+                email: bookingDetails.email,
+                hotel_name: bookingDetails.hotelName,
+                phone: bookingDetails.phone,
+                country_code: '', // Handled by the full phone string now
+                scheduled_at: scheduledAt.toISOString()
+            }]);
+
+            if (dbError) throw dbError;
+
+            // 2. Trigger Email via RPC (SAME AS OTP STYLE)
+            const { error: rpcError } = await supabase.rpc('send_demo_notifications', {
+                email_to: bookingDetails.email,
+                user_name: bookingDetails.name,
+                hotel_name: bookingDetails.hotelName,
+                booking_time: `${selectedTime}, ${currentMonthName} ${selectedDate}, ${currentYear}`,
+                type: 'confirmation'
+            });
+
+            if (rpcError) console.warn('Email RPC failed:', rpcError);
+            setIsConfirmed(true);
+
+            setIsConfirmed(true);
+        } catch (error) {
+            console.error('Booking failed:', error);
+            setIsConfirmed(true);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    if (isConfirmed) {
+        return (
+            <div className="demo-modal-overlay" onClick={onClose}>
+                <div className="demo-modal-container" onClick={e => e.stopPropagation()} style={{ padding: '40px', textAlign: 'center', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: '#f0fdf4', color: '#15803d', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+                        <CheckCircle2 size={40} style={{ margin: 'auto' }} />
+                    </div>
+                    <h2 style={{ fontSize: '28px', fontWeight: '900', color: '#0f172a', marginBottom: '16px' }}>Booking Confirmed!</h2>
+                    <p style={{ color: '#64748b', fontSize: '16px', lineHeight: '1.6', maxWidth: '400px', marginBottom: '32px' }}>
+                        We've sent an invitation to <strong>{bookingDetails.email}</strong>. We'll also reach out to <strong>{bookingDetails.hotelName}</strong> soon. See you on {currentMonthName} {selectedDate}, {currentYear} at {selectedTime}.
+                    </p>
+                    <button className="btn-primary-dark" onClick={onClose} style={{ padding: '16px 40px' }}>Done</button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="demo-modal-overlay" onClick={onClose}>
+            <div className="demo-modal-container" onClick={e => e.stopPropagation()}>
+                <button className="demo-close-btn" onClick={onClose}><X size={18} /></button>
+
+                <div className="demo-info-pane">
+                    <div className="landing-logo" style={{ marginBottom: '32px', cursor: 'default' }}>
+                        <img src="/hoteltec.png" alt="Hoteltec Logo" />
+                    </div>
+                    <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', marginBottom: '12px', lineHeight: '1.2' }}>Product Architecture Walkthrough</h2>
+                    <p style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b', fontSize: '15px', marginBottom: '16px', fontWeight: '600' }}>
+                        <Clock size={18} style={{ color: '#3b82f6' }} /> 15 Min Session
+                    </p>
+                    {selectedTime && (
+                        <div style={{ background: '#eff6ff', padding: '16px', borderRadius: '16px', marginBottom: '20px', border: '1px solid #dbeafe' }}>
+                            <p style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#1d4ed8', fontSize: '14px', fontWeight: '800', margin: 0 }}>
+                                <Calendar size={18} /> {selectedTime}, {currentMonthName} {selectedDate}, {currentYear}
+                            </p>
+                        </div>
+                    )}
+                    <p style={{ color: '#475569', fontSize: '15px', lineHeight: '1.6', flex: 1 }}>
+                        Get a deep dive into how Hoteltec transforms property operations. We'll show you the exact revenue-boosting features used by ibis & leading hotels.
+                    </p>
+                    <div style={{ marginTop: '32px', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '12px' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                            <CheckCircle2 size={20} />
+                        </div>
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Live Support Included</span>
+                    </div>
+                </div>
+
+                <div className="demo-booking-pane">
+                    {!selectedTime ? (
+                        <>
+                            <h3 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', marginBottom: '28px', letterSpacing: '-0.02em' }}>Select a Date & Time</h3>
+
+                            <div className="calendar-header">
+                                <span style={{ fontWeight: '700' }}>{currentMonthName} {currentYear}</span>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                    <button type="button" className="calendar-nav" onClick={() => setMonthOffset(prev => prev - 1)} aria-label="Previous Month">
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    <button type="button" className="calendar-nav" onClick={() => setMonthOffset(prev => prev + 1)} aria-label="Next Month">
+                                        <ChevronRight size={20} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="calendar-grid">
+                                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
+                                    <div key={d} className="calendar-day-label">{d}</div>
+                                ))}
+                                {emptyDays.map((_, i) => (
+                                    <div key={`empty-${i}`} className="calendar-day disabled" style={{ visibility: 'hidden' }}></div>
+                                ))}
+                                {days.map(day => (
+                                    <div
+                                        key={day}
+                                        className={`calendar-day ${day === selectedDate ? 'active' : ''} ${day < 5 ? 'disabled' : ''}`}
+                                        onClick={() => day >= 5 && setSelectedDate(day)}
+                                    >
+                                        {day}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div style={{ marginTop: '40px' }}>
+                                <h4 style={{ fontSize: '15px', fontWeight: '900', color: '#0f172a', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Clock size={18} style={{ color: '#3b82f6' }} /> Select Time Slot
+                                </h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '12px' }}>
+                                    {times.map(t => (
+                                        <button
+                                            key={t}
+                                            onClick={() => setSelectedTime(t)}
+                                            className="time-slot-btn"
+                                        >
+                                            {t}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <form onSubmit={handleConfirm} className="demo-details-form" style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '100%', overflowY: 'auto', paddingRight: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                                <button type="button" onClick={() => setSelectedTime(null)} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}>
+                                    <ChevronLeft size={20} /> Back
+                                </button>
+                                <h3 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>Enter Details</h3>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#64748b', marginBottom: '8px' }}>Name *</label>
+                                    <input required type="text" placeholder="John Doe" value={bookingDetails.name} onChange={e => setBookingDetails({ ...bookingDetails, name: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#64748b', marginBottom: '8px' }}>Email *</label>
+                                    <input required type="email" placeholder="john@hotel.com" value={bookingDetails.email} onChange={e => setBookingDetails({ ...bookingDetails, email: e.target.value })} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#64748b', marginBottom: '8px' }}>Hotel Name *</label>
+                                <input required type="text" placeholder="Grand Resort & Spa" value={bookingDetails.hotelName} onChange={e => setBookingDetails({ ...bookingDetails, hotelName: e.target.value })} />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#64748b', marginBottom: '8px' }}>Phone Number *</label>
+                                <PhoneInput
+                                    defaultCountry="us"
+                                    value={bookingDetails.phone}
+                                    onChange={(phone) => setBookingDetails({ ...bookingDetails, phone })}
+                                    inputStyle={{
+                                        width: '100%',
+                                        height: '46px',
+                                        fontSize: '15px',
+                                        fontWeight: '500',
+                                        borderRadius: '0 12px 12px 0',
+                                        border: '1px solid #e2e8f0',
+                                        borderLeft: 'none'
+                                    }}
+                                    containerStyle={{
+                                        height: '46px'
+                                    }}
+                                    countrySelectorStyleProps={{
+                                        buttonStyle: {
+                                            borderRadius: '12px 0 0 12px',
+                                            border: '1px solid #e2e8f0',
+                                            padding: '0 12px',
+                                            height: '46px',
+                                            background: '#fff'
+                                        }
+                                    }}
+                                />
+                            </div>
+
+                            <p style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1.4' }}>
+                                By proceeding, you confirm that you have read and agree to Hoteltec's Terms of Service and Privacy Policy.
+                            </p>
+
+                            <button
+                                type="submit"
+                                className="btn-primary-dark"
+                                disabled={isLoading}
+                                style={{ width: '100%', padding: '14px', borderRadius: '12px', opacity: isLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                        Scheduling...
+                                    </>
+                                ) : 'Schedule Event'}
+                            </button>
+                        </form>
+                    )}
+                </div>
+            </div>
+            <style>{`
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
         </div>
     );
 };

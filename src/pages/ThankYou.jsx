@@ -4,8 +4,12 @@ import Lottie from 'lottie-react';
 import { ShoppingBag, Package, CheckCircle2, Home } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
+import { getSubdomain } from '../utils/domain';
+
 export default function ThankYou() {
-  const { slug } = useParams();
+  const { slug: routeSlug } = useParams();
+  const subdomain = getSubdomain();
+  const slug = subdomain || routeSlug;
   const navigate = useNavigate();
   const location = useLocation();
   const orderId = location.state?.orderId;
@@ -256,8 +260,9 @@ export default function ThankYou() {
 
         <div className="btn-stack">
           <button className="btn-main" onClick={() => {
-            const isSubdomain = window.location.hostname.includes('hoteltec.app') || (window.location.hostname.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
-            navigate(isSubdomain ? '/' : `/store/${slug}`);
+            if (subdomain) navigate('/');
+            else if (slug) navigate(`/store/${slug}`);
+            else navigate('/');
           }}>
             <ShoppingBag size={20} />
             Order More

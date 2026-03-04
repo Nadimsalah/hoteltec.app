@@ -9,7 +9,7 @@ import Analytics from './Analytics';
 import Billing from './Billing';
 import Settings from './Settings';
 import StaffManagement from './StaffManagement';
-import { ShieldCheck, UserCircle2, KeyRound } from 'lucide-react';
+import { ShieldCheck, UserCircle2, KeyRound, ChevronDown, Trash2, Building2, CircleDollarSign } from 'lucide-react';
 
 const getActiveTabFromPath = (path) => {
     switch (path) {
@@ -48,8 +48,37 @@ const Dashboard = ({ activeTab: initialTab }) => {
     // Staff state
     const [activeStaff, setActiveStaff] = useState(null);
     const [showLoginModal, setShowLoginModal] = useState(false);
-    const [staffPin, setStaffPin] = useState('');
+    const [loginPin, setLoginPin] = useState('');
     const [staffError, setStaffError] = useState('');
+    const [showHotelMenu, setShowHotelMenu] = useState(false);
+
+    const handleDeleteStore = async (e, idToDelete) => {
+        e.stopPropagation();
+        if (!window.confirm('Are you sure you want to delete this store? All associated data will be lost.')) return;
+
+        try {
+            const { error } = await supabase.from('stores').delete().eq('id', idToDelete);
+            if (error) throw error;
+
+            showToast('Store deleted successfully');
+            const remaining = allStores.filter(s => s.id !== idToDelete);
+
+            if (remaining.length === 0) {
+                // If it was the last store, clear and reload context
+                localStorage.removeItem('hoteltec_active_store');
+                window.location.reload();
+            } else if (idToDelete === storeId) {
+                // Switched to another store if deleted the active one
+                localStorage.setItem('hoteltec_active_store', remaining[0].id);
+                window.location.reload();
+            } else {
+                setAllStores(remaining);
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Failed to delete store', 'error');
+        }
+    };
 
     useEffect(() => {
         fetchInitialData();
@@ -404,27 +433,121 @@ const Dashboard = ({ activeTab: initialTab }) => {
             <div className="main-content">
                 <header className="top-bar">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        {!activeStaff && allStores.length > 1 && (
-                            <select
-                                value={storeId || ''}
-                                onChange={(e) => {
-                                    localStorage.setItem('hoteltec_active_store', e.target.value);
-                                    window.location.reload();
-                                }}
-                                style={{
-                                    padding: '8px 12px',
-                                    borderRadius: '12px',
-                                    border: '1px solid #e2e8f0',
-                                    background: '#f8fafc',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: '#0f172a',
-                                    outline: 'none',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                {allStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
+                        {!activeStaff && allStores.length > 0 && (
+                            <div style={{ position: 'relative' }}>
+                                <div
+                                    onClick={() => setShowHotelMenu(!showHotelMenu)}
+                                    style={{
+                                        padding: '8px 16px',
+                                        borderRadius: '12px',
+                                        border: '1px solid #e2e8f0',
+                                        background: '#f8fafc',
+                                        fontSize: '14px',
+                                        fontWeight: '600',
+                                        color: '#0f172a',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        userSelect: 'none',
+                                        transition: 'all 0.2s',
+                                        boxShadow: showHotelMenu ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : '0 2px 8px rgba(0,0,0,0.02)'
+                                    }}
+                                >
+                                    <Building2 size={16} color="#64748b" />
+                                    {storeData?.name || 'Select Hotel'}
+                                    <ChevronDown size={16} color="#94a3b8" style={{ transform: showHotelMenu ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
+                                </div>
+
+                                {showHotelMenu && (
+                                    <>
+                                        <div style={{ position: 'fixed', inset: 0, zIndex: 90 }} onClick={() => setShowHotelMenu(false)} />
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 'calc(100% + 8px)',
+                                            left: 0,
+                                            width: '290px',
+                                            background: '#fff',
+                                            borderRadius: '18px',
+                                            boxShadow: '0 20px 40px -10px rgba(0,0,0,0.15)',
+                                            border: '1px solid #f1f5f9',
+                                            overflow: 'hidden',
+                                            zIndex: 100,
+                                        }}>
+                                            <div style={{ padding: '16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                                <div style={{ fontSize: '12px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>Workspace Analytics</div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                    <div style={{ background: '#fff', padding: '12px 10px', borderRadius: '14px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '12px', fontWeight: '600' }}><Building2 size={14} /> Total Hotels</div>
+                                                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a' }}>{allStores.length}</div>
+                                                    </div>
+                                                    <div style={{ background: '#fff', padding: '12px 10px', borderRadius: '14px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '12px', fontWeight: '600' }}><CircleDollarSign size={14} /> Income</div>
+                                                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#10b981' }}>
+                                                            {(() => {
+                                                                try {
+                                                                    const code = storeData?.currency || 'USD';
+                                                                    const totalIncome = orders.filter(o => o.status === 'Completed').reduce((sum, o) => sum + (o.total || 0), 0);
+                                                                    return totalIncome.toLocaleString('en', { style: 'currency', currency: code, minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                                                                } catch {
+                                                                    return `$${orders.filter(o => o.status === 'Completed').reduce((sum, o) => sum + (o.total || 0), 0)}`;
+                                                                }
+                                                            })()}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ maxHeight: '260px', overflowY: 'auto', padding: '8px' }}>
+                                                {allStores.map(s => (
+                                                    <div
+                                                        key={s.id}
+                                                        onClick={() => {
+                                                            localStorage.setItem('hoteltec_active_store', s.id);
+                                                            window.location.reload();
+                                                        }}
+                                                        style={{
+                                                            padding: '12px 14px',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'space-between',
+                                                            borderRadius: '12px',
+                                                            cursor: 'pointer',
+                                                            background: s.id === storeId ? '#f1f5f9' : 'transparent',
+                                                            marginBottom: '2px',
+                                                            transition: 'all 0.15s'
+                                                        }}
+                                                        onMouseOver={e => e.currentTarget.style.background = '#f1f5f9'}
+                                                        onMouseOut={e => { if (s.id !== storeId) e.currentTarget.style.background = 'transparent' }}
+                                                    >
+                                                        <span style={{ fontSize: '14px', fontWeight: '600', color: s.id === storeId ? '#3b82f6' : '#0f172a' }}>{s.name}</span>
+                                                        <div
+                                                            onClick={(e) => handleDeleteStore(e, s.id)}
+                                                            className="delete-hotel-btn"
+                                                            style={{
+                                                                color: '#ef4444',
+                                                                cursor: 'pointer',
+                                                                padding: '8px',
+                                                                borderRadius: '8px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                transition: '0.2s',
+                                                                opacity: 0.7
+                                                            }}
+                                                            onMouseOver={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.opacity = 1 }}
+                                                            onMouseOut={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.opacity = 0.7 }}
+                                                            title="Delete Hotel"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         )}
 
                         {!activeStaff && (

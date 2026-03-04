@@ -48,22 +48,37 @@ export default function HotelStore({ presetSlug }) {
   const fetchStoreData = async () => {
     setLoading(true);
     try {
-      const { data: allStores } = await supabase.from('stores').select('*');
-      const store = allStores?.find(s => {
-        const sSlug = s.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-        return sSlug === slug;
-      });
+      // 1. Fetch store by slug column directly (MUCH safer and faster)
+      let { data: store, error: storeError } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('slug', slug)
+        .maybeSingle();
+
+      // 2. Fallback for older stores without slug column set but matching name
+      if (!store) {
+        const { data: allStores } = await supabase.from('stores').select('*');
+        store = allStores?.find(s => {
+          const sSlug = s.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+          return sSlug === slug;
+        });
+      }
 
       if (store) {
         setStoreData(store);
-        const { data: storeStories } = await supabase.from('stories').select('*').eq('store_id', store.id);
-        if (storeStories) setStories(storeStories);
 
-        const { data: storeCats } = await supabase.from('categories').select('*').eq('store_id', store.id).order('index', { ascending: true });
-        if (storeCats) setCategories(storeCats);
+        // Parallel fetching for performance
+        const [storiesRes, categoriesRes, productsRes] = await Promise.all([
+          supabase.from('stories').select('*').eq('store_id', store.id),
+          supabase.from('categories').select('*').eq('store_id', store.id).order('index', { ascending: true }),
+          supabase.from('products').select('*').eq('store_id', store.id)
+        ]);
 
-        const { data: storeProds } = await supabase.from('products').select('*').eq('store_id', store.id);
-        if (storeProds) setProducts(storeProds);
+        if (storiesRes.data) setStories(storiesRes.data);
+        if (categoriesRes.data) setCategories(categoriesRes.data);
+        if (productsRes.data) setProducts(productsRes.data);
+      } else {
+        console.error('Store not found for slug:', slug);
       }
     } catch (error) {
       console.error('Error fetching store data:', error);
@@ -1065,37 +1080,41 @@ export default function HotelStore({ presetSlug }) {
       )}
 
       {/* Search Bar */}
-      <div className="search-section">
-        <div className="search-bar">
-          <Search size={22} color="#94a3b8" />
-          <input
-            type="text"
-            placeholder="Search for in-room dining, spa..."
-            className="search-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      {products.length > 0 && (
+        <div className="search-section">
+          <div className="search-bar">
+            <Search size={22} color="#94a3b8" />
+            <input
+              type="text"
+              placeholder="Search for in-room dining, spa..."
+              className="search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Categories */}
-      <div className="categories-section">
-        <div
-          className={`category-pill ${activeCategory === 'All' ? 'active' : ''}`}
-          onClick={() => setActiveCategory('All')}
-        >
-          All
-        </div>
-        {categories.map(category => (
+      {products.length > 0 && categories.length > 0 && (
+        <div className="categories-section">
           <div
-            key={category.id}
-            className={`category-pill ${activeCategory === category.name ? 'active' : ''}`}
-            onClick={() => setActiveCategory(category.name)}
+            className={`category-pill ${activeCategory === 'All' ? 'active' : ''}`}
+            onClick={() => setActiveCategory('All')}
           >
-            {category.name}
+            All
           </div>
-        ))}
-      </div>
+          {categories.map(category => (
+            <div
+              key={category.id}
+              className={`category-pill ${activeCategory === category.name ? 'active' : ''}`}
+              onClick={() => setActiveCategory(category.name)}
+            >
+              {category.name}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Products Grid */}
       <div className="products-section">
@@ -1167,8 +1186,18 @@ export default function HotelStore({ presetSlug }) {
           </div>
         ))}
         {filteredProducts.length === 0 && (
-          <div style={{ textAlign: 'center', width: '100%', padding: '40px', color: '#64748b' }}>
-            No products found matching your search.
+          <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', background: 'white', borderRadius: '32px', border: '2px dashed #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)', marginTop: '12px' }}>
+            <div style={{ width: '88px', height: '88px', borderRadius: '24px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', marginBottom: '24px', boxShadow: 'inset 0 4px 6px rgba(0,0,0,0.02)' }}>
+              {products.length === 0 ? '🍽️' : '🔍'}
+            </div>
+            <h3 style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', marginBottom: '12px', letterSpacing: '-0.02em', textAlign: 'center' }}>
+              {products.length === 0 ? 'Menu Coming Soon' : 'No matches found'}
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '16px', maxWidth: '340px', textAlign: 'center', lineHeight: '1.6' }}>
+              {products.length === 0
+                ? 'We are carefully preparing our digital menu. Our delicious offerings will be available here shortly!'
+                : 'Try adjusting your search or category filters to find what you are looking for.'}
+            </p>
           </div>
         )}
       </div>
