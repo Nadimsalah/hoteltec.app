@@ -89,24 +89,37 @@ const Dashboard = ({ activeTab: initialTab }) => {
         try {
             // Get user's store
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
 
-            // Fetch if user is staff of any stores
-            const { data: teamAssignments } = await supabase
-                .from('team_members')
-                .select('store_id')
-                .eq('user_id', user.id);
+            // Support STAFF PORTALS (Where no Supabase admin is logged in, but staff is using a device)
+            const staffActiveStoreId = localStorage.getItem('hoteltec_active_store');
+
+            if (!user && !staffActiveStoreId) {
+                navigate('/login');
+                return;
+            }
 
             let storesQuery = supabase.from('stores').select('*');
-            if (teamAssignments && teamAssignments.length > 0) {
-                const storeIds = teamAssignments.map(t => t.store_id);
-                if (storeIds.length) {
-                    storesQuery = storesQuery.or(`user_id.eq.${user.id},id.in.(${storeIds.join(',')})`);
+
+            if (user) {
+                // Fetch if user is staff of any stores by RBAC
+                const { data: teamAssignments } = await supabase
+                    .from('team_members')
+                    .select('store_id')
+                    .eq('user_id', user.id);
+
+                if (teamAssignments && teamAssignments.length > 0) {
+                    const storeIds = teamAssignments.map(t => t.store_id);
+                    if (storeIds.length) {
+                        storesQuery = storesQuery.or(`user_id.eq.${user.id},id.in.(${storeIds.join(',')})`);
+                    } else {
+                        storesQuery = storesQuery.eq('user_id', user.id);
+                    }
                 } else {
                     storesQuery = storesQuery.eq('user_id', user.id);
                 }
-            } else {
-                storesQuery = storesQuery.eq('user_id', user.id);
+            } else if (staffActiveStoreId) {
+                // If it's a completely anonymous device running the staff portal, fetch ONLY their specific hotel store by ID.
+                storesQuery = storesQuery.eq('id', staffActiveStoreId);
             }
 
             const { data: stores } = await storesQuery.order('created_at', { ascending: true });
@@ -366,13 +379,13 @@ const Dashboard = ({ activeTab: initialTab }) => {
                     .stat-card { min-width: 140px; scroll-snap-align: start; padding: 16px !important; }
                     .orders-controls { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
                     .orders-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-                    .order-card { padding: 0 !important; border-radius: 16px !important; }
-                    .order-card-inner { flex-direction: row !important; align-items: center !important; justify-content: space-between !important; padding: 16px !important;}
-                    .order-card-image { display: none; /* Hide image on mobile list view for compactness, or can tweak later */ }
-                    .order-card .badge-new { position: static !important; margin-bottom: 4px; width: fit-content; border-radius: 8px !important; padding: 4px 8px !important; box-shadow: none !important; }
+                    .order-card { padding: 12px !important; border-radius: 16px !important; flex-direction: row !important; align-items: center !important; gap: 16px !important; }
+                    .order-card-inner { flex-direction: row !important; align-items: center !important; justify-content: space-between !important; padding: 0 !important; flex: 1 !important;}
+                    .order-card-image { display: block !important; width: 64px !important; height: 64px !important; object-fit: cover !important; border-radius: 12px !important; border: none !important; margin: 0 !important; }
+                    .order-card .badge-new { position: absolute !important; top: -6px !important; right: -6px !important; margin: 0 !important; border-radius: 8px !important; padding: 4px 8px !important; box-shadow: 0 4px 12px rgba(59,130,246,0.3) !important; z-index: 10; }
                     .card-room { font-size: 12px !important; margin-bottom: 2px !important; }
                     .card-order-name { font-size: 15px !important; margin: 4px 0 !important; }
-                    .card-footer { display: flex !important; flex-direction: column !important; align-items: flex-end !important; gap: 4px; border-top: none !important; padding-top: 0 !important; }
+                    .card-footer { display: flex !important; flex-direction: column !important; align-items: flex-end !important; justify-content: center !important; gap: 4px; border-top: none !important; padding-top: 0 !important; margin: 0 !important; }
                     .details-grid { grid-template-columns: 1fr; }
                 }
 

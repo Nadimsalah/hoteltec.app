@@ -51,6 +51,7 @@ const StaffLogin = () => {
         if (staffMember) {
             // Save active staff session locally
             localStorage.setItem(`hoteltec_active_${storeId}`, staffMember.id);
+            localStorage.setItem('hoteltec_active_store', storeId);
             navigate('/dash');
         } else {
             setError('Invalid username or PIN code');

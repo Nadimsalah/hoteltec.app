@@ -927,6 +927,7 @@ export default function HotelStore({ presetSlug }) {
             max-width: 100%;
             height: auto;
             border-radius: 40px 40px 0 0;
+            animation: slideUpDetails 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
           }
           .product-details-overlay {
             align-items: flex-end;
@@ -938,6 +939,11 @@ export default function HotelStore({ presetSlug }) {
           .details-info {
             padding: 24px;
           }
+        }
+
+        @keyframes slideUpDetails {
+          0% { transform: translateY(100%); opacity: 1; }
+          100% { transform: translateY(0); opacity: 1; }
         }
 
         /* Instagram Story Viewer */
@@ -1467,12 +1473,12 @@ export default function HotelStore({ presetSlug }) {
                 </div>
                 <button
                   className="story-order-btn"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     const product = products.find(p => p.id === stories[activeStoryIndex].linked_product_id);
                     if (product) {
-                      addToCart(product);
                       setShowStoryViewer(false);
-                      setIsCheckoutOpen(true);
+                      setSelectedProduct(product);
                     }
                   }}
                 >

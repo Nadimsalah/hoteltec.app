@@ -11,3 +11,7 @@ CREATE POLICY "Anyone can create order items" ON public.order_items FOR INSERT W
 
 DROP POLICY IF EXISTS "Anyone can view order items" ON public.order_items;
 CREATE POLICY "Anyone can view order items" ON public.order_items FOR SELECT USING (true);
+
+-- Fix orders update policy for staff
+DROP POLICY IF EXISTS "Anyone can update orders" ON public.orders;
+CREATE POLICY "Anyone can update orders" ON public.orders FOR UPDATE USING (true);
