@@ -315,6 +315,29 @@ const StaffManagement = ({ storeId }) => {
                     cursor: pointer;
                 }
                 .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+                
+                @media (max-width: 768px) {
+                    .staff-header { flex-direction: column; align-items: stretch; gap: 16px; margin-bottom: 24px; }
+                    .staff-header h2 { font-size: 24px; }
+                    .staff-header > div:last-child { flex-direction: column; width: 100%; }
+                    .add-staff-btn { width: 100%; justify-content: center; }
+                    
+                    .staff-grid { grid-template-columns: 1fr; gap: 16px; }
+                    
+                    .modal-content { 
+                        position: fixed; 
+                        bottom: 0; 
+                        left: 0; 
+                        right: 0; 
+                        border-radius: 24px 24px 0 0; 
+                        max-height: 90vh; 
+                        padding-bottom: env(safe-area-inset-bottom);
+                    }
+                    .permission-grid { grid-template-columns: 1fr; }
+                    .modal-body { padding: 24px; }
+                    .modal-header { padding: 20px 24px; }
+                    .modal-actions { padding: 16px 24px calc(16px + env(safe-area-inset-bottom)) 24px; }
+                }
             `}</style>
 
             <div className="staff-header">

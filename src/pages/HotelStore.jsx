@@ -16,9 +16,11 @@ import {
 // Hardcoded defaults removed. Data is now fetched from Supabase.
 
 import { useNavigate, useParams } from 'react-router-dom';
+import useMediaQuery from '../hooks/useMediaQuery'; // custom hook for responsive detection
 
 export default function HotelStore({ presetSlug }) {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const { slug: routeSlug } = useParams();
   const slug = presetSlug || routeSlug;
   const [loading, setLoading] = useState(true);
@@ -230,6 +232,7 @@ export default function HotelStore({ presetSlug }) {
           color: #0f172a;
           position: relative;
           z-index: 10;
+          padding-bottom: env(safe-area-inset-bottom); /* iOS safe area */
         }
 
         /* Top Header */
@@ -607,6 +610,8 @@ export default function HotelStore({ presetSlug }) {
             background: white;
             width: 100%;
             max-width: 500px;
+            max-height: 90vh; /* Make sure it doesn't exceed screen height */
+            overflow-y: auto; /* Allow scrolling within the modal */
             border-radius: 32px 32px 0 0;
             padding: 32px 24px;
             box-shadow: 0 -20px 40px rgba(0,0,0,0.1);
@@ -697,8 +702,14 @@ export default function HotelStore({ presetSlug }) {
         }
 
         @media (max-width: 768px) {
-            .modal-card { padding: 24px 20px; }
+            .store-header { padding: 16px 20px; }
+            .modal-card { padding: 24px 20px; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
             .form-grid { grid-template-columns: 1fr; }
+            .products-section { padding: 16px; padding-bottom: 100px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+            .search-section { padding: 12px 20px; }
+            .categories-section { padding: 12px 20px; top: 76px; }
+            .stories-section { padding: 12px 20px; }
+            .details-info { padding: 24px 20px; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
         }
 
         /* Product Details Modal */
@@ -1394,7 +1405,7 @@ export default function HotelStore({ presetSlug }) {
 
       {/* Product Details Modal */}
       {selectedProduct && (
-        <div className="product-details-overlay" onClick={() => setSelectedProduct(null)}>
+        <div className={`product-details-overlay ${isMobile ? 'mobile' : ''}`} onClick={() => setSelectedProduct(null)}>
           <div className="product-details-card" onClick={e => e.stopPropagation()}>
             <div className="details-image-wrap">
               <button className="details-close" onClick={() => setSelectedProduct(null)}>
