@@ -1,71 +1,38 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Background from '../components/Background';
 import { supabase } from '../supabaseClient';
 
-const Signup = () => {
+const OtpLogin = () => {
     const navigate = useNavigate();
-    const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [step, setStep] = useState(1); // 1 = Enter Email, 2 = Enter OTP
+    const [otpValues, setOtpValues] = useState(['', '', '', '']); // Assuming 4 numbers
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [message, setMessage] = useState('');
 
-    // OTP State
-    const [step, setStep] = useState(1); // 1 = Signup Form, 2 = Verify OTP
-    const [otpValues, setOtpValues] = useState(['', '', '', '']); // Assuming 4 numbers
     const inputRefs = useRef([]);
 
-    const handleSignup = async (e) => {
+    // Step 1: Request OTP
+    const handleSendOtp = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
         setMessage('');
 
-        // Generate a random 4-digit code
-        const generatedCode = Math.floor(1000 + Math.random() * 9000).toString();
-
         try {
-            // 1. Create the user in Supabase
-            // NOTE: Even if Supabase tries to send an email and fails, the user record is usually created.
-            // We use signUp but we will handle the verification ourselves.
-            const { data, error: signupError } = await supabase.auth.signUp({
+            const { error: otpError } = await supabase.auth.signInWithOtp({
                 email,
-                password,
                 options: {
-                    data: {
-                        full_name: fullName,
-                    },
-                },
-            });
-
-            // If it's a "Email rate limit exceeded" or "Error sending confirmation email", 
-            // the user might still have been created. We proceed to send our own email.
-            if (signupError && !signupError.message.includes('rate limit') && !signupError.message.includes('confirmation email')) {
-                throw signupError;
-            }
-
-            // 2. Store the OTP in our custom table
-            const { error: otpError } = await supabase.from('otp_codes').upsert({
-                email,
-                code: generatedCode,
-                expires_at: new Date(Date.now() + 10 * 60000).toISOString(), // 10 minutes
+                    shouldCreateUser: false // Adjust to true if you want to allow signing up via OTP
+                }
             });
 
             if (otpError) throw otpError;
 
-            // 3. Send the email via our new Database Function (Bypasses CORS)
-            const { error: rpcError } = await supabase.rpc('send_otp_email', {
-                email_to: email,
-                otp_code: generatedCode
-            });
-
-            if (rpcError) throw new Error('Failed to trigger email function: ' + rpcError.message);
-
-            setMessage('Account created! We sent a 4-digit code to your email via Resend.');
+            setMessage('OTP sent to your email! Please check your inbox.');
             setStep(2);
-
         } catch (err) {
             setError(err.message);
         } finally {
@@ -75,28 +42,31 @@ const Signup = () => {
 
     // Handle OTP Input Changes
     const handleOtpChange = (index, value) => {
-        if (!/^[0-9]?$/.test(value)) return;
+        if (!/^[0-9]?$/.test(value)) return; // Only allow numbers
 
         const newOtpValues = [...otpValues];
         newOtpValues[index] = value;
         setOtpValues(newOtpValues);
 
+        // Auto-focus next input
         if (value && index < 3) {
             inputRefs.current[index + 1]?.focus();
         }
     };
 
     const handleKeyDown = (index, e) => {
+        // Handle backspace to focus previous input
         if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
             inputRefs.current[index - 1]?.focus();
         }
     };
 
+    // Step 2: Verify OTP
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
-        const userInput = otpValues.join('');
+        const token = otpValues.join('');
 
-        if (userInput.length < 4) {
+        if (token.length < 4) {
             setError('Please enter the full 4-digit code.');
             return;
         }
@@ -105,35 +75,17 @@ const Signup = () => {
         setError(null);
 
         try {
-            // 1. Check our custom otp_codes table
-            const { data: otpData, error: otpError } = await supabase
-                .from('otp_codes')
-                .select('*')
-                .eq('email', email)
-                .single();
-
-            if (otpError || !otpData || otpData.code !== userInput) {
-                throw new Error('Invalid or expired verification code.');
-            }
-
-            // 2. NEW: Manually confirm the email in Supabase via RPC
-            const { error: confirmError } = await supabase.rpc('confirm_user_email', {
-                user_email: email
-            });
-            if (confirmError) throw new Error('Confirmation failed: ' + confirmError.message);
-
-            // 3. Now that the email is confirmed, sign them in
-            const { data, error: loginError } = await supabase.auth.signInWithPassword({
+            const { data, error: verifyError } = await supabase.auth.verifyOtp({
                 email,
-                password,
+                token,
+                type: 'magiclink' // using 'magiclink' handles OTP logins via signInWithOtp
             });
 
-            if (loginError) throw loginError;
+            if (verifyError) throw verifyError;
 
-            // 4. Success - Clean up OTP and go to dashboard
-            await supabase.from('otp_codes').delete().eq('email', email);
-            navigate('/dash');
-
+            if (data?.session) {
+                navigate('/dash');
+            }
         } catch (err) {
             setError(err.message);
         } finally {
@@ -147,8 +99,8 @@ const Signup = () => {
             <div className="auth-card">
                 <div className="auth-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <img src="/hoteltec.png" alt="Hoteltec Logo" style={{ height: '48px', objectFit: 'contain', marginBottom: '16px' }} />
-                    <span className="auth-badge">Join Hoteltec</span>
-                    <h1 className="auth-title">{step === 1 ? 'Create your account' : 'Verify Email'}</h1>
+                    <span className="auth-badge">Secure Authentication</span>
+                    <h1 className="auth-title">{step === 1 ? 'Login with OTP' : 'Enter Verification Code'}</h1>
                 </div>
 
                 {error && (
@@ -164,51 +116,26 @@ const Signup = () => {
                 )}
 
                 {step === 1 ? (
-                    <form onSubmit={handleSignup}>
-                        <div className="form-group">
-                            <label className="form-label">Full Name</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                placeholder="John Doe"
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
-                                required
-                            />
-                        </div>
-
+                    <form onSubmit={handleSendOtp}>
                         <div className="form-group">
                             <label className="form-label">Email Address</label>
                             <input
                                 type="email"
                                 className="form-input"
-                                placeholder="name@email.com"
+                                placeholder="name@hotel.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                             />
                         </div>
 
-                        <div className="form-group">
-                            <label className="form-label">Password</label>
-                            <input
-                                type="password"
-                                className="form-input"
-                                placeholder="••••••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                minLength={6}
-                            />
-                        </div>
-
                         <button
                             type="submit"
                             className="btn-primary"
-                            style={{ marginTop: '12px', opacity: loading ? 0.7 : 1 }}
-                            disabled={loading}
+                            disabled={loading || !email}
+                            style={{ opacity: loading ? 0.7 : 1, marginTop: '10px' }}
                         >
-                            {loading ? 'Creating account...' : 'Get Started'}
+                            {loading ? 'Sending Code...' : 'Send OTP Code'}
                         </button>
                     </form>
                 ) : (
@@ -249,17 +176,27 @@ const Signup = () => {
                             disabled={loading}
                             style={{ opacity: loading ? 0.7 : 1 }}
                         >
-                            {loading ? 'Verifying...' : 'Verify & Setup'}
+                            {loading ? 'Verifying...' : 'Verify & Login'}
                         </button>
+
+                        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                            <button
+                                type="button"
+                                onClick={() => setStep(1)}
+                                style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '14px', cursor: 'pointer', textDecoration: 'underline' }}
+                            >
+                                Use a different email
+                            </button>
+                        </div>
                     </form>
                 )}
 
                 <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '14px', color: '#6b7280' }}>
-                    Already have an account? <button type="button" style={{ color: '#000', fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0, font: 'inherit' }} onClick={() => navigate('/login')}>Login</button>
+                    Prefer password? <button type="button" style={{ color: '#000', fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0, font: 'inherit' }} onClick={() => navigate('/login')}>Login here</button>
                 </div>
             </div>
         </div>
     );
-};
+}
 
-export default Signup;
+export default OtpLogin;

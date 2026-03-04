@@ -470,7 +470,7 @@ const Dashboard = ({ activeTab: initialTab }) => {
                                     boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)'
                                 }}
                             >
-                                Staff Logout
+                                Logout
                             </button>
                         ) : (
                             <button
@@ -489,7 +489,7 @@ const Dashboard = ({ activeTab: initialTab }) => {
                                     cursor: 'pointer'
                                 }}
                             >
-                                Admin Logout
+                                Logout
                             </button>
                         )}
 

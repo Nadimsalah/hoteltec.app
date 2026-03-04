@@ -70,7 +70,7 @@ const Landing = () => {
                 }
 
                 .landing-logo img {
-                    height: 28px;
+                    height: 42px;
                     object-fit: contain;
                 }
 
@@ -787,6 +787,112 @@ const Landing = () => {
                         background-position: center !important;
                     }
                 }
+
+                /* Solutions Section */
+                .solutions-section {
+                    padding: 100px 64px;
+                background: #ffffff;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                max-width: 1440px;
+                margin: 0 auto;
+                width: 100%;
+                }
+
+                .solutions-header {
+                    text - align: center;
+                margin-bottom: 60px;
+                }
+
+                .solutions-header h2 {
+                    font - size: 42px;
+                font-weight: 800;
+                letter-spacing: -0.04em;
+                color: #0f172a;
+                margin: 0 0 16px 0;
+                }
+
+                .solutions-header p {
+                    color: #64748b;
+                font-size: 20px;
+                font-weight: 500;
+                max-width: 600px;
+                margin: 0 auto;
+                }
+
+                .solutions-grid {
+                    display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 32px;
+                width: 100%;
+                }
+
+                .solution-card {
+                    background: #f8fafc;
+                border: 1px solid #f1f5f9;
+                border-radius: 24px;
+                padding: 40px 32px;
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                }
+
+                .solution-card:hover {
+                    background: #ffffff;
+                transform: translateY(-8px);
+                box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
+                border-color: #e2e8f0;
+                }
+
+                .solution-icon-wrapper {
+                    width: 56px;
+                height: 56px;
+                border-radius: 16px;
+                background: #eff6ff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 24px;
+                color: #3b82f6;
+                transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                }
+
+                .solution-card:hover .solution-icon-wrapper {
+                    background: #3b82f6;
+                color: #ffffff;
+                transform: scale(1.1) rotate(5deg);
+                }
+
+                .solution-card h3 {
+                    font - size: 22px;
+                font-weight: 700;
+                color: #0f172a;
+                margin-bottom: 12px;
+                line-height: 1.3;
+                }
+
+                .solution-card p {
+                    font - size: 15px;
+                color: #64748b;
+                line-height: 1.6;
+                margin: 0;
+                }
+
+                @media (max-width: 1024px) {
+                    .solutions - grid {grid - template - columns: repeat(2, 1fr); }
+                }
+
+                @media (max-width: 768px) {
+                    .solutions - section {padding: 60px 24px; }
+                .solutions-header h2 {font - size: 32px; }
+                .solutions-header p {font - size: 16px; }
+                .solutions-grid {grid - template - columns: 1fr; }
+                .solution-card {padding: 32px 24px; }
+                }
             `}</style>
 
             <header className="landing-header">
@@ -795,10 +901,8 @@ const Landing = () => {
                 </div>
 
                 <nav className="nav-links">
-                    <span className="nav-link">Product</span>
-                    <span className="nav-link">Solutions</span>
-                    <span className="nav-link">Resources</span>
-                    <span className="nav-link">Pricing</span>
+                    <span className="nav-link" onClick={() => document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth' })}>Solutions</span>
+                    <span className="nav-link" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>Pricing</span>
                 </nav>
 
                 <div className="header-actions">
@@ -809,7 +913,7 @@ const Landing = () => {
             <section className="hero-section">
                 <div className="hero-left">
                     <div className="trust-badge">
-                        <Star size={16} fill="#000" /> 4.9 on Capterra
+                        <Star size={16} fill="#000" /> 4.9 on Hoteltec.app
                     </div>
 
                     <h1 className="hero-title">
@@ -880,6 +984,47 @@ const Landing = () => {
                     <span style={{ textTransform: 'uppercase' }}>Trilogy</span>
                 </div>
             </section>
+
+            <section className="solutions-section" id="solutions">
+                <div className="solutions-header">
+                    <h2>How Hoteltec Works</h2>
+                    <p>Designed for speed and simplicity. Transform your property into a seamless digital experience in minutes.</p>
+                </div>
+
+                <div className="solutions-grid">
+                    <div className="solution-card">
+                        <div className="solution-icon-wrapper"><Building2 size={24} /></div>
+                        <h3>1. Create Your Account</h3>
+                        <p>Sign up in seconds and add your property. Operating a chain? Manage multiple hotels effortlessly under one master dashboard.</p>
+                    </div>
+                    <div className="solution-card">
+                        <div className="solution-icon-wrapper"><LayoutDashboard size={24} /></div>
+                        <h3>2. Add Digital Services</h3>
+                        <p>Build a stunning digital menu. Add room service items, spa bookings, late checkouts, and premium upsells with custom images.</p>
+                    </div>
+                    <div className="solution-card">
+                        <div className="solution-icon-wrapper"><Wand2 size={24} /></div>
+                        <h3>3. Generate QR Codes</h3>
+                        <p>Instantly generate unique room-specific QR codes. Print and place them in rooms, lobbies, or cabanas for frictionless access.</p>
+                    </div>
+                    <div className="solution-card">
+                        <div className="solution-icon-wrapper"><Smartphone size={24} /></div>
+                        <h3>4. Guests Scan & Order</h3>
+                        <p>No app downloads required. Guests scan your QR code to instantly view your custom-branded digital store on their own smartphones.</p>
+                    </div>
+                    <div className="solution-card">
+                        <div className="solution-icon-wrapper"><Activity size={24} /></div>
+                        <h3>5. Receive Live Orders</h3>
+                        <p>Watch orders stream onto your dashboard with real-time audio alerts. Never miss an opportunity to fulfill a guest's request rapidly.</p>
+                    </div>
+                    <div className="solution-card">
+                        <div className="solution-icon-wrapper"><HeartHandshake size={24} /></div>
+                        <h3>6. Manage Staff & Delight</h3>
+                        <p>Assign tasks to specific staff members and track fulfillment times. Improve your operations and watch your 5-star reviews multiply.</p>
+                    </div>
+                </div>
+            </section>
+
             <section className="pricing-section" id="pricing">
                 <div className="liquid-blob-1"></div>
                 <div className="liquid-blob-2"></div>

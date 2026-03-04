@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import OtpLogin from './pages/OtpLogin';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
@@ -29,7 +30,7 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
+  if (loading && window.location.pathname !== '/') {
     return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white', fontSize: '18px', fontWeight: '600' }}>Loading Hoteltec...</div>;
   }
 
@@ -60,6 +61,7 @@ function App() {
         <Routes>
           {/* Auth Routes */}
           <Route path="/login" element={!session ? <Login /> : <Navigate to="/dash" replace />} />
+          <Route path="/otp" element={!session ? <OtpLogin /> : <Navigate to="/dash" replace />} />
           <Route path="/signup" element={!session ? <Signup /> : <Navigate to="/dash" replace />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/staff/:storeId" element={<StaffLogin />} />
