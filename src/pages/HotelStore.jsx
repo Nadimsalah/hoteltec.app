@@ -624,7 +624,7 @@ export default function HotelStore({ presetSlug }) {
         .checkout-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
         .checkout-subtitle { color: #64748b; margin-bottom: 24px; font-size: 15px; }
 
-        .cart-items { max-height: 300px; overflow-y: auto; margin-bottom: 24px; }
+        .cart-items { max-height: 35vh; overflow-y: auto; margin-bottom: 24px; }
         .cart-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
         .cart-item-info h4 { font-weight: 700; font-size: 16px; margin: 0; }
         .cart-item-info p { color: #64748b; font-size: 14px; margin: 2px 0 0 0; }
@@ -649,7 +649,17 @@ export default function HotelStore({ presetSlug }) {
         }
         .payment-option.active { border-color: #3b82f6; background: rgba(59,130,246,0.05); color: #3b82f6; }
 
-        .checkout-footer { padding-top: 20px; border-top: 1px solid #f1f5f9; }
+        .checkout-footer { 
+            padding-top: 20px; 
+            border-top: 1px solid #f1f5f9; 
+            position: sticky;
+            bottom: -32px;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(8px);
+            margin: 0 -24px -32px -24px;
+            padding: 24px;
+            z-index: 100;
+        }
         .total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .total-label { font-size: 16px; color: #64748b; font-weight: 600; }
         .total-val { font-size: 28px; font-weight: 800; color: #0f172a; }
@@ -703,9 +713,66 @@ export default function HotelStore({ presetSlug }) {
 
         @media (max-width: 768px) {
             .store-header { padding: 16px 20px; }
-            .modal-card { padding: 24px 20px; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
-            .form-grid { grid-template-columns: 1fr; }
-            .products-section { padding: 16px; padding-bottom: 100px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+            .modal-overlay { 
+                align-items: flex-start;
+                background: #ffffff; /* Make the background completely solid for full screen */
+            }
+            .modal-card { 
+                padding: 24px 20px 0 20px; 
+                margin: 0;
+                width: 100%;
+                max-width: 100%;
+                max-height: 100dvh;
+                height: 100dvh;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .cart-items {
+                max-height: none;
+                margin-bottom: 24px;
+            }
+            .checkout-footer {
+                bottom: 0;
+                margin: 0 -20px 0 -20px;
+                padding: 20px 20px calc(24px + env(safe-area-inset-bottom)) 20px;
+                box-shadow: 0 -10px 20px rgba(0,0,0,0.05);
+            }
+            .form-grid { grid-template-columns: 1fr; gap: 0; }
+            .payment-options { gap: 8px; }
+            .products-section { padding: 16px; padding-bottom: 120px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+        }
+
+        .mobile-checkout-bar {
+            display: none;
+            position: fixed;
+            bottom: calc(16px + env(safe-area-inset-bottom));
+            left: 16px;
+            right: 16px;
+            background: #0f172a;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 100px;
+            z-index: 999;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .mobile-checkout-bar:active { transform: scale(0.98); }
+
+        @media (max-width: 768px) {
+            .mobile-checkout-bar {
+                display: flex;
+            }
+        }
+
+        @keyframes slideUpFade {
+            0% { transform: translateY(40px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
             .search-section { padding: 12px 20px; }
             .categories-section { padding: 12px 20px; top: 76px; }
             .stories-section { padding: 12px 20px; }
@@ -1459,6 +1526,21 @@ export default function HotelStore({ presetSlug }) {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Mobile Sticky Checkout Bar */}
+      {isMobile && cart.length > 0 && !isCheckoutOpen && (
+        <div className="mobile-checkout-bar" onClick={() => setIsCheckoutOpen(true)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.2)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '800' }}>
+              {cart.reduce((total, item) => total + item.quantity, 0)}
+            </div>
+            <span style={{ fontSize: '16px', fontWeight: '700' }}>View Checkout</span>
+          </div>
+          <span style={{ fontSize: '16px', fontWeight: '800' }}>
+            {currencySymbol}{cartTotal.toFixed(2)} &rarr;
+          </span>
         </div>
       )}
     </div>
