@@ -10,7 +10,9 @@ import {
   Clock,
   Heart,
   X,
-  Minus
+  Minus,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 // Hardcoded defaults removed. Data is now fetched from Supabase.
@@ -42,6 +44,7 @@ export default function HotelStore({ presetSlug }) {
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [storyProgress, setStoryProgress] = useState(0);
+  const [isStoryMuted, setIsStoryMuted] = useState(true);
 
   useEffect(() => {
     fetchStoreData();
@@ -1054,16 +1057,20 @@ export default function HotelStore({ presetSlug }) {
 
         .story-footer-action {
           position: absolute;
-          bottom: 40px;
-          left: 20px;
-          right: 20px;
+          bottom: 0;
+          left: 0;
+          right: 0;
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 20px;
           z-index: 100;
-          background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-          padding: 40px 0 20px 0;
+          background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+          padding: 120px 20px 60px 20px;
+          pointer-events: none; /* Let clicks pass through the gradient background */
+        }
+        .story-footer-action * {
+          pointer-events: auto; /* Re-enable clicks exactly on the button */
         }
 
         .story-swipe-up {
@@ -1402,9 +1409,16 @@ export default function HotelStore({ presetSlug }) {
                   <div style={{ fontSize: '11px', fontWeight: '400', opacity: 0.8 }}>Just now</div>
                 </div>
               </div>
-              <button className="story-close" onClick={() => setShowStoryViewer(false)}>
-                <X size={24} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {stories[activeStoryIndex]?.media_type === 'video' && (
+                  <button className="story-close" onClick={(e) => { e.stopPropagation(); setIsStoryMuted(!isStoryMuted); }}>
+                    {isStoryMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                  </button>
+                )}
+                <button className="story-close" onClick={() => setShowStoryViewer(false)}>
+                  <X size={24} />
+                </button>
+              </div>
             </div>
 
             {/* Media Content */}
@@ -1419,7 +1433,7 @@ export default function HotelStore({ presetSlug }) {
                   className="story-media"
                   autoPlay
                   playsInline
-                  muted
+                  muted={isStoryMuted}
                   onEnded={nextStory}
                 />
               ) : (
