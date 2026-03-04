@@ -17,9 +17,10 @@ import {
 
 import { useNavigate, useParams } from 'react-router-dom';
 
-export default function HotelStore() {
+export default function HotelStore({ presetSlug }) {
   const navigate = useNavigate();
-  const { slug } = useParams();
+  const { slug: routeSlug } = useParams();
+  const slug = presetSlug || routeSlug;
   const [loading, setLoading] = useState(true);
   const [storeData, setStoreData] = useState(null);
   const [stories, setStories] = useState([]);
@@ -148,7 +149,7 @@ export default function HotelStore() {
       setCart([]);
       setIsCheckoutOpen(false);
       setCheckoutForm({ name: '', phone: '', room: '', payment: 'Cash' });
-      navigate(`/store/${slug}/success`, { state: { orderId: order.id } });
+      navigate(presetSlug ? '/success' : `/store/${slug}/success`, { state: { orderId: order.id } });
     } catch (err) {
       alert('Checkout failed: ' + err.message);
     } finally {
@@ -438,7 +439,7 @@ export default function HotelStore() {
 
         .product-image-wrap {
           width: 100%;
-          height: 220px;
+          aspect-ratio: 1 / 1;
           border-radius: 20px;
           overflow: hidden;
           position: relative;
@@ -1374,7 +1375,7 @@ export default function HotelStore() {
                 <img
                   src={selectedProduct.image_url}
                   alt={selectedProduct.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderTopLeftRadius: '24px', borderTopRightRadius: '24px' }}
                 />
               ) : (
                 <div style={{ width: '100%', height: '100%', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '64px' }}>🍽️</div>

@@ -57,10 +57,7 @@ const Settings = () => {
         timezone: 'UTC',
         logo_url: ''
     });
-    const [teamMembers, setTeamMembers] = useState([
-        { id: 1, name: 'Batuhan Kara', email: 'batuhan@example.com', role: 'Administrator', avatar: 'BK' },
-        { id: 2, name: 'John Doe', email: 'john@example.com', role: 'Staff', avatar: 'JD' }
-    ]);
+    const [teamMembers, setTeamMembers] = useState([]);
     const [notifications, setNotifications] = useState({
         newOrder: true,
         serviceRequest: true,
@@ -88,13 +85,30 @@ const Settings = () => {
             if (!user) return;
 
             // 1. Fetch Store
-            const { data: store } = await supabase
-                .from('stores')
-                .select('*')
-                .eq('user_id', user.id)
-                .single();
+            // Fetch if user is staff of any stores
+            const { data: teamAssignments } = await supabase
+                .from('team_members')
+                .select('store_id')
+                .eq('user_id', user.id);
 
-            if (store) {
+            let storesQuery = supabase.from('stores').select('*');
+            if (teamAssignments && teamAssignments.length > 0) {
+                const storeIds = teamAssignments.map(t => t.store_id);
+                if (storeIds.length) {
+                    storesQuery = storesQuery.or(`user_id.eq.${user.id},id.in.(${storeIds.join(',')})`);
+                } else {
+                    storesQuery = storesQuery.eq('user_id', user.id);
+                }
+            } else {
+                storesQuery = storesQuery.eq('user_id', user.id);
+            }
+
+            const { data: stores } = await storesQuery.order('created_at', { ascending: true });
+
+            if (stores && stores.length > 0) {
+                const savedId = localStorage.getItem('hoteltec_active_store');
+                const store = savedId ? (stores.find(s => s.id === savedId) || stores[0]) : stores[0];
+
                 setStoreId(store.id);
                 setGeneralSettings({
                     name: store.name || 'My Hotel',
@@ -104,17 +118,31 @@ const Settings = () => {
                     logo_url: store.logo_url || ''
                 });
 
+                const ownerName = user.user_metadata?.full_name || 'Store Owner';
+                const owner = {
+                    id: user.id,
+                    name: ownerName,
+                    email: user.email,
+                    role: 'Administrator',
+                    avatar: ownerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                };
+
                 // 2. Fetch Team
                 const { data: team } = await supabase
                     .from('team_members')
                     .select('*')
                     .eq('store_id', store.id);
 
-                if (team) {
-                    setTeamMembers(team.map(m => ({
-                        ...m,
-                        avatar: m.name ? m.name.split(' ').map(n => n[0]).join('') : 'U'
-                    })));
+                if (team && team.length > 0) {
+                    setTeamMembers([
+                        owner,
+                        ...team.map(m => ({
+                            ...m,
+                            avatar: m.name ? m.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U'
+                        }))
+                    ]);
+                } else {
+                    setTeamMembers([owner]);
                 }
             }
         } catch (error) {

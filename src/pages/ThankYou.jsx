@@ -255,7 +255,10 @@ export default function ThankYou() {
         </div>
 
         <div className="btn-stack">
-          <button className="btn-main" onClick={() => navigate(`/store/${slug}`)}>
+          <button className="btn-main" onClick={() => {
+            const isSubdomain = window.location.hostname.includes('hoteltec.app') || (window.location.hostname.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+            navigate(isSubdomain ? '/' : `/store/${slug}`);
+          }}>
             <ShoppingBag size={20} />
             Order More
           </button>

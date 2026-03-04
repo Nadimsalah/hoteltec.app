@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Welcome to HotelTec</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 1px solid #f1f5f9;">
+              <h1 style="margin: 0; font-size: 32px; font-weight: 800; color: #0f172a; letter-spacing: -1px;">
+                HotelTec<span style="color: #3b82f6;">.</span>
+              </h1>
+            </td>
+          </tr>
+          
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px; text-align: left;">
+              <h2 style="margin: 0 0 20px 0; font-size: 22px; font-weight: 700; color: #0f172a;">Confirm your email address</h2>
+              <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #475569;">
+                Welcome to Hoteltec! You're just one step away from building your digital room service app. Please confirm your email address to get started.
+              </p>
+              
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 30px 0;">
+                    <!-- Supabase injects the confirmation link dynamically via {{ .ConfirmationURL }} -->
+                    <a href="{{ .ConfirmationURL }}" style="display: inline-block; background-color: #0f172a; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 100px;">Verify My Account</a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">
+                If you didn't request this email, there's nothing to worry about — you can safely ignore it.
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #f8fafc; text-align: center;">
+              <p style="margin: 0; font-size: 13px; color: #94a3b8; font-weight: 500;">
+                &copy; 2026 Hoteltec. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

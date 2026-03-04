@@ -18,7 +18,8 @@ const QRTemplateModal = ({ store, onClose }) => {
     }, [activeTemplate]);
 
     const slug = store.slug || (store.name ? store.name.toLowerCase().replace(/\s+/g, '-') : 'store');
-    const url = `${window.location.origin}/store/${slug}`;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const url = isLocalhost ? `http://${window.location.host}/store/${slug}` : `https://${slug}.hoteltec.app`;
     const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=000000&margin=20`;
 
     const current = defaultTemplates[activeTemplate];

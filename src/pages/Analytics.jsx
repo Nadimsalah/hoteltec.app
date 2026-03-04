@@ -48,13 +48,30 @@ const Analytics = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { data: store } = await supabase
-                .from('stores')
-                .select('id, currency')
-                .eq('user_id', user.id)
-                .single();
+            // Fetch if user is staff of any stores
+            const { data: teamAssignments } = await supabase
+                .from('team_members')
+                .select('store_id')
+                .eq('user_id', user.id);
 
-            if (!store) return;
+            let storesQuery = supabase.from('stores').select('id, currency');
+            if (teamAssignments && teamAssignments.length > 0) {
+                const storeIds = teamAssignments.map(t => t.store_id);
+                if (storeIds.length) {
+                    storesQuery = storesQuery.or(`user_id.eq.${user.id},id.in.(${storeIds.join(',')})`);
+                } else {
+                    storesQuery = storesQuery.eq('user_id', user.id);
+                }
+            } else {
+                storesQuery = storesQuery.eq('user_id', user.id);
+            }
+
+            const { data: stores } = await storesQuery.order('created_at', { ascending: true });
+
+            if (!stores || stores.length === 0) return;
+
+            const savedId = localStorage.getItem('hoteltec_active_store');
+            const store = savedId ? (stores.find(s => s.id === savedId) || stores[0]) : stores[0];
 
             // Fetch Orders
             const { data: ordersData, error: ordersError } = await supabase

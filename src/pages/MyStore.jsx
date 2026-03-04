@@ -181,12 +181,16 @@ const ProductModal = ({ editing, categories, onSave, onClose }) => {
 const MyStore = ({ onSwitch }) => {
     // ── Wizard state ──────────────────────────────────────────────────────
     const [storeData, setStoreData] = useState(null);
+    const [isCreatingNewStore, setIsCreatingNewStore] = useState(false);
     const [setupStep, setSetupStep] = useState(1);
     const [storeName, setStoreName] = useState('');
+    const [storeSlug, setStoreSlug] = useState('');
+    const [slugStatus, setSlugStatus] = useState(null); // 'checking', 'available', 'taken', null
     const [storePhone, setStorePhone] = useState('');
     const [storeLogo, setStoreLogo] = useState(null);
     const [logoFile, setLogoFile] = useState(null);
     const logoInputRef = useRef(null);
+    const typingTimeoutRef = useRef(null);
 
     const [loading, setLoading] = useState(true);
 
@@ -219,15 +223,33 @@ const MyStore = ({ onSwitch }) => {
             if (!user) return;
 
             // 1. Get Store
-            const { data: store, error: storeError } = await supabase
-                .from('stores')
-                .select('*')
-                .eq('user_id', user.id)
-                .single();
+            // Fetch if user is staff of any stores
+            const { data: teamAssignments } = await supabase
+                .from('team_members')
+                .select('store_id')
+                .eq('user_id', user.id);
 
-            if (store) {
+            let storesQuery = supabase.from('stores').select('*');
+            if (teamAssignments && teamAssignments.length > 0) {
+                const storeIds = teamAssignments.map(t => t.store_id);
+                if (storeIds.length) {
+                    storesQuery = storesQuery.or(`user_id.eq.${user.id},id.in.(${storeIds.join(',')})`);
+                } else {
+                    storesQuery = storesQuery.eq('user_id', user.id);
+                }
+            } else {
+                storesQuery = storesQuery.eq('user_id', user.id);
+            }
+
+            const { data: stores, error: storeError } = await storesQuery.order('created_at', { ascending: true });
+
+            if (stores && stores.length > 0) {
+                const savedId = localStorage.getItem('hoteltec_active_store');
+                const store = savedId ? (stores.find(s => s.id === savedId) || stores[0]) : stores[0];
+
                 setStoreData(store);
                 setStoreName(store.name);
+                setStoreSlug(store.slug || store.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''));
                 setStorePhone(store.phone);
                 setStoreLogo(store.logo_url);
 
@@ -265,6 +287,66 @@ const MyStore = ({ onSwitch }) => {
     };
 
     // ── Logo upload ───────────────────────────────────────────────────────
+    const handleNameChange = (e) => {
+        const val = e.target.value;
+        setStoreName(val);
+        if (!storeData) {
+            setStoreSlug(val.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''));
+        }
+    };
+
+    const checkSlugAvailability = async (slugToCheck) => {
+        if (!slugToCheck) {
+            setSlugStatus(null);
+            return;
+        }
+        setSlugStatus('checking');
+
+        try {
+            // Because Supabase 'stores' might not strictly have a 'slug' column yet on all instances,
+            // we will search all stores and manually test their generated slugs, or test the explicit slug.
+            const { data } = await supabase.from('stores').select('id, name, slug');
+
+            const isTaken = data?.some(s => {
+                // If editing an existing store, exclude itself from the taken check
+                if (!isCreatingNewStore && storeData && s.id === storeData.id) return false;
+
+                const existingSlug = s.slug || s.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+                return existingSlug === slugToCheck;
+            });
+
+            setSlugStatus(isTaken ? 'taken' : 'available');
+        } catch (err) {
+            console.error("Slug check failed", err);
+            setSlugStatus('available'); // default
+        }
+    };
+
+    const handleSlugChange = (e) => {
+        const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+        setStoreSlug(val);
+
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+        if (val) {
+            setSlugStatus('checking');
+            typingTimeoutRef.current = setTimeout(() => {
+                checkSlugAvailability(val);
+            }, 600);
+        } else {
+            setSlugStatus(null);
+        }
+    };
+
+    const nextWizardStep = () => {
+        if (setupStep === 1 && storeName.trim()) setSetupStep(2);
+        else if (setupStep === 2) {
+            setSetupStep(3);
+            checkSlugAvailability(storeSlug);
+        }
+        else if (setupStep === 3 && slugStatus === 'available') setSetupStep(4);
+    };
+
     const handleLogoUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -290,6 +372,7 @@ const MyStore = ({ onSwitch }) => {
                 .insert([{
                     user_id: user.id,
                     name: storeName,
+                    slug: storeSlug,
                     phone: storePhone,
                     logo_url: uploadedLogoUrl
                 }])
@@ -299,7 +382,10 @@ const MyStore = ({ onSwitch }) => {
             if (error) throw error;
             setStoreData(store);
             setStoreLogo(store.logo_url); // Update local state with the permanent URL
+            setIsCreatingNewStore(false);
             showToast('Store created successfully!');
+            localStorage.setItem('hoteltec_active_store', store.id);
+            window.location.reload();
         } catch (error) {
             showToast(error.message, 'error');
         } finally {
@@ -501,13 +587,21 @@ const MyStore = ({ onSwitch }) => {
     // ────────────────────────────────────────────────────────────────────────
     // WIZARD VIEW
     // ────────────────────────────────────────────────────────────────────────
-    if (!storeData) {
+    if (!storeData || isCreatingNewStore) {
         return (
             <div className="wizard-container">
+                {isCreatingNewStore && (
+                    <button
+                        onClick={() => setIsCreatingNewStore(false)}
+                        style={{ position: 'absolute', top: 24, right: 24, background: 'white', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', zIndex: 100 }}
+                    >
+                        Cancel
+                    </button>
+                )}
                 {toastUI}
                 <div className="wizard-card">
                     <div className="wizard-steps">
-                        {[1, 2, 3].map(s => (
+                        {[1, 2, 3, 4].map(s => (
                             <div key={s} className={`wizard-step-dot ${s === setupStep ? 'active' : s < setupStep ? 'done' : ''}`} />
                         ))}
                     </div>
@@ -515,19 +609,19 @@ const MyStore = ({ onSwitch }) => {
                     {setupStep === 1 && (
                         <div className="wizard-step-content">
                             <div className="wizard-icon">🏪</div>
-                            <h1 className="wizard-title">Name Your Store</h1>
+                            <h1 className="wizard-title">Hotel Name</h1>
                             <p className="wizard-subtitle">This is how your customers will find you.</p>
                             <input
                                 className="form-input wizard-input"
-                                placeholder="e.g., The Rooftop Kitchen"
+                                placeholder="e.g., The Grand Resort"
                                 value={storeName}
-                                onChange={e => setStoreName(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && storeName.trim() && setSetupStep(2)}
+                                onChange={handleNameChange}
+                                onKeyDown={e => e.key === 'Enter' && storeName.trim() && nextWizardStep()}
                             />
                             <button
                                 className="wizard-btn"
                                 disabled={!storeName.trim()}
-                                onClick={() => storeName.trim() && setSetupStep(2)}
+                                onClick={nextWizardStep}
                             >
                                 Continue →
                             </button>
@@ -551,7 +645,7 @@ const MyStore = ({ onSwitch }) => {
                             </div>
                             <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
                                 <button className="wizard-btn-outline" onClick={() => setSetupStep(1)}>Back</button>
-                                <button className="wizard-btn" onClick={() => setSetupStep(3)}>
+                                <button className="wizard-btn" onClick={nextWizardStep}>
                                     {storeLogo ? 'Continue →' : 'Skip →'}
                                 </button>
                             </div>
@@ -559,6 +653,39 @@ const MyStore = ({ onSwitch }) => {
                     )}
 
                     {setupStep === 3 && (
+                        <div className="wizard-step-content">
+                            <div className="wizard-icon">🌐</div>
+                            <h1 className="wizard-title">Web Address</h1>
+                            <p className="wizard-subtitle">Choose your custom `.hoteltec.app` domain.</p>
+
+                            <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', border: `2px solid ${slugStatus === 'taken' ? '#ef4444' : slugStatus === 'available' ? '#10b981' : '#e2e8f0'}`, padding: '12px 16px', borderRadius: '16px', transition: 'border-color 0.2s', width: '100%', marginBottom: '12px' }}>
+                                <span style={{ color: '#0f172a', fontWeight: '800' }}>https://</span>
+                                <input
+                                    type="text"
+                                    value={storeSlug}
+                                    onChange={handleSlugChange}
+                                    style={{ background: 'transparent', border: 'none', outline: 'none', flex: 1, fontSize: '18px', fontWeight: '800', color: '#0f172a', minWidth: '40px' }}
+                                    placeholder="hotelname"
+                                />
+                                <span style={{ color: '#64748b', fontWeight: '700' }}>.hoteltec.app</span>
+                            </div>
+
+                            <div style={{ minHeight: '24px', textAlign: 'center', fontSize: '14px', fontWeight: '600' }}>
+                                {slugStatus === 'checking' && <span style={{ color: '#64748b' }}>Checking availability...</span>}
+                                {slugStatus === 'available' && <span style={{ color: '#10b981' }}>Great! This domain is available.</span>}
+                                {slugStatus === 'taken' && <span style={{ color: '#ef4444' }}>This domain is already taken. Try another.</span>}
+                            </div>
+
+                            <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                                <button className="wizard-btn-outline" onClick={() => setSetupStep(2)}>Back</button>
+                                <button className="wizard-btn" disabled={slugStatus !== 'available'} onClick={nextWizardStep}>
+                                    Continue →
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {setupStep === 4 && (
                         <div className="wizard-step-content">
                             <div className="wizard-icon">📞</div>
                             <h1 className="wizard-title">Contact Number</h1>
@@ -569,10 +696,10 @@ const MyStore = ({ onSwitch }) => {
                                 value={storePhone}
                                 onChange={e => setStorePhone(e.target.value)}
                                 type="tel"
-                                onKeyDown={e => e.key === 'Enter' && setSetupStep(4)}
+                                onKeyDown={e => e.key === 'Enter' && handleStartSelling()}
                             />
                             <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-                                <button className="wizard-btn-outline" onClick={() => setSetupStep(2)}>Back</button>
+                                <button className="wizard-btn-outline" onClick={() => setSetupStep(3)}>Back</button>
                                 <button className="wizard-btn start-selling-btn" onClick={handleStartSelling}>
                                     🚀 Start Selling
                                 </button>
@@ -751,6 +878,14 @@ const MyStore = ({ onSwitch }) => {
                         </div>
                     </div>
                     <div className="store-header-actions">
+                        <button
+                            className="store-action-btn"
+                            onClick={() => setIsCreatingNewStore(true)}
+                            style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0', fontWeight: '600' }}
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Create New Hotel
+                        </button>
                         <button className="store-action-btn qr-btn" onClick={() => setShowQR(true)}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><path d="M14 14h3v3m4-3h.01M14 21h7M21 14v3" /></svg>
                             QR Code
@@ -758,8 +893,9 @@ const MyStore = ({ onSwitch }) => {
                         <button
                             className="store-action-btn preview-btn"
                             onClick={() => {
-                                const slug = storeData.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-                                window.open(`/store/${slug}`, '_blank');
+                                const slug = storeData.slug || storeData.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+                                const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                                window.open(isLocalhost ? `http://${window.location.host}/store/${slug}` : `https://${slug}.hoteltec.app`, '_blank');
                             }}
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>

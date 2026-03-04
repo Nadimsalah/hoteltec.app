@@ -8,6 +8,8 @@ import Stories from './Stories';
 import Analytics from './Analytics';
 import Billing from './Billing';
 import Settings from './Settings';
+import StaffManagement from './StaffManagement';
+import { ShieldCheck, UserCircle2, KeyRound } from 'lucide-react';
 
 const getActiveTabFromPath = (path) => {
     switch (path) {
@@ -16,6 +18,7 @@ const getActiveTabFromPath = (path) => {
         case '/dash/analytics': return 'Analytics';
         case '/dash/billing': return 'Billing';
         case '/dash/settings': return 'Settings';
+        case '/dash/team': return 'Team';
         default: return 'Orders';
     }
 };
@@ -40,6 +43,13 @@ const Dashboard = ({ activeTab: initialTab }) => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [storeId, setStoreId] = useState(null);
+    const [allStores, setAllStores] = useState([]);
+
+    // Staff state
+    const [activeStaff, setActiveStaff] = useState(null);
+    const [showLoginModal, setShowLoginModal] = useState(false);
+    const [staffPin, setStaffPin] = useState('');
+    const [staffError, setStaffError] = useState('');
 
     useEffect(() => {
         fetchInitialData();
@@ -52,15 +62,45 @@ const Dashboard = ({ activeTab: initialTab }) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { data: store } = await supabase
-                .from('stores')
-                .select('*')
-                .eq('user_id', user.id)
-                .single();
+            // Fetch if user is staff of any stores
+            const { data: teamAssignments } = await supabase
+                .from('team_members')
+                .select('store_id')
+                .eq('user_id', user.id);
 
-            if (store) {
+            let storesQuery = supabase.from('stores').select('*');
+            if (teamAssignments && teamAssignments.length > 0) {
+                const storeIds = teamAssignments.map(t => t.store_id);
+                if (storeIds.length) {
+                    storesQuery = storesQuery.or(`user_id.eq.${user.id},id.in.(${storeIds.join(',')})`);
+                } else {
+                    storesQuery = storesQuery.eq('user_id', user.id);
+                }
+            } else {
+                storesQuery = storesQuery.eq('user_id', user.id);
+            }
+
+            const { data: stores } = await storesQuery.order('created_at', { ascending: true });
+
+            if (stores && stores.length > 0) {
+                setAllStores(stores);
+                const savedId = localStorage.getItem('hoteltec_active_store');
+                const store = savedId ? (stores.find(s => s.id === savedId) || stores[0]) : stores[0];
+
                 setStoreId(store.id);
                 setStoreData(store);
+
+                // Fetch staff presets & check active staff
+                const listRaw = localStorage.getItem(`hoteltec_staff_${store.id}`);
+                if (listRaw) {
+                    const list = JSON.parse(listRaw);
+                    const activeId = localStorage.getItem(`hoteltec_active_${store.id}`);
+                    if (activeId) {
+                        const s = list.find(x => x.id === activeId);
+                        if (s) setActiveStaff(s);
+                    }
+                }
+
                 fetchOrders(store.id);
             }
         } catch (error) {
@@ -77,7 +117,7 @@ const Dashboard = ({ activeTab: initialTab }) => {
                 *,
                 order_items (
                     *,
-                    products ( image_url )
+                    products ( image_url, category_id )
                 )
             `)
             .eq('store_id', id)
@@ -100,7 +140,8 @@ const Dashboard = ({ activeTab: initialTab }) => {
                     image: productImage || 'https://images.unsplash.com/photo-1544145945-f904253db0ad?auto=format&fit=crop&q=80&w=800',
                     client: { name: o.customer_name, email: '', phone: o.customer_phone },
                     items: o.order_items.map(i => `${i.quantity}x ${i.product_name}`),
-                    total: o.total_amount
+                    total: o.total_amount,
+                    categories: o.order_items.map(i => i.products?.category_id).filter(Boolean)
                 };
             });
             setOrders(transformed);
@@ -119,21 +160,37 @@ const Dashboard = ({ activeTab: initialTab }) => {
         canceled: orders.filter(o => o.status === 'Canceled').length
     };
 
-    const tabs = [
+    const allTabs = [
         { name: 'Orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', path: '/dash' },
         { name: 'My Store', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z', path: '/dash/mystore' },
         { name: 'Stories', icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z', path: '/dash/stories' },
         { name: 'Analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', path: '/dash/analytics' },
         { name: 'Billing', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', path: '/dash/billing' },
         { name: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', path: '/dash/settings' },
+        { name: 'Team', icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100-8 4 4 0 000 8zm14 14v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75', path: '/dash/team' }
     ];
+
+    const tabs = activeStaff
+        ? allTabs.filter(t => {
+            const allowed = activeStaff.pages || ['Orders'];
+            // Always allow Orders if somehow their permissions are totally empty
+            if (t.name === 'Orders' && allowed.length === 0) return true;
+            return allowed.includes(t.name);
+        })
+        : allTabs;
 
     const filteredOrders = orders.filter(order => {
         const matchesSearch = order.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             order.room.includes(searchQuery) ||
             order.client.name.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
-        return matchesSearch && matchesStatus;
+
+        // Strict category isolation for staff
+        const matchesCategories = (activeStaff && activeStaff.categories && activeStaff.categories.length > 0)
+            ? order.categories.some(cid => activeStaff.categories.includes(cid))
+            : true;
+
+        return matchesSearch && matchesStatus && matchesCategories;
     });
 
     const updateStatus = async (id, newStatus) => {
@@ -157,6 +214,32 @@ const Dashboard = ({ activeTab: initialTab }) => {
             setSelectedOrder({ ...selectedOrder, status: newStatus });
         }
         showToast(`Order #${id} marked as ${newStatus}`);
+    };
+
+    const handleStaffLogin = () => {
+        if (!loginPin) return;
+        const list = JSON.parse(localStorage.getItem(`hoteltec_staff_${storeId}`) || '[]');
+        const p = list.find(x => x.pin === loginPin);
+        if (p) {
+            setActiveStaff(p);
+            localStorage.setItem(`hoteltec_active_${storeId}`, p.id);
+            setShowLoginModal(false);
+            setLoginPin('');
+            setStaffError('');
+
+            // Redirect them to their first assigned page if they don't have access to the current one
+            if (!p.pages.includes(activeTab)) {
+                const initialTab = allTabs.find(t => p.pages.includes(t.name));
+                if (initialTab) {
+                    navigate(initialTab.path);
+                    setActiveTab(initialTab.name);
+                } else {
+                    setActiveTab('NoAccess');
+                }
+            }
+        } else {
+            setStaffError('Invalid PIN code');
+        }
     };
 
     return (
@@ -321,53 +404,100 @@ const Dashboard = ({ activeTab: initialTab }) => {
             <div className="main-content">
                 <header className="top-bar">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <button
-                            onClick={() => setShowQR(true)}
-                            style={{
-                                padding: '8px 16px',
-                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '12px',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
-                                transition: 'transform 0.2s',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }}
-                            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                        >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                            Print QR Stand
-                        </button>
+                        {!activeStaff && allStores.length > 1 && (
+                            <select
+                                value={storeId || ''}
+                                onChange={(e) => {
+                                    localStorage.setItem('hoteltec_active_store', e.target.value);
+                                    window.location.reload();
+                                }}
+                                style={{
+                                    padding: '8px 12px',
+                                    borderRadius: '12px',
+                                    border: '1px solid #e2e8f0',
+                                    background: '#f8fafc',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    color: '#0f172a',
+                                    outline: 'none',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {allStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                        )}
 
-                        <button
-                            onClick={async () => {
-                                await supabase.auth.signOut();
-                                navigate('/login');
-                            }}
-                            style={{
-                                background: 'none',
-                                border: '1px solid #e2e8f0',
-                                color: '#64748b',
-                                padding: '8px 12px',
-                                borderRadius: '10px',
-                                fontSize: '13px',
-                                fontWeight: '600',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Logout
-                        </button>
+                        {!activeStaff && (
+                            <button
+                                onClick={() => setShowQR(true)}
+                                style={{
+                                    padding: '8px 16px',
+                                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                                    transition: 'transform 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                                Print QR Stand
+                            </button>
+                        )}
+
+                        {activeStaff ? (
+                            <button
+                                onClick={() => {
+                                    localStorage.removeItem(`hoteltec_active_${storeId}`);
+                                    window.location.href = `/staff/${storeId}`;
+                                }}
+                                style={{
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: '10px',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)'
+                                }}
+                            >
+                                Staff Logout
+                            </button>
+                        ) : (
+                            <button
+                                onClick={async () => {
+                                    await supabase.auth.signOut();
+                                    navigate('/login');
+                                }}
+                                style={{
+                                    background: 'none',
+                                    border: '1px solid #e2e8f0',
+                                    color: '#64748b',
+                                    padding: '8px 16px',
+                                    borderRadius: '10px',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Admin Logout
+                            </button>
+                        )}
 
                         <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', overflow: 'hidden' }}>
                             {storeData?.logo_url ? (
                                 <img src={storeData.logo_url} alt="Store Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
-                                <span style={{ margin: 'auto' }}>JD</span>
+                                <span style={{ margin: 'auto' }}>{activeStaff ? activeStaff.name.charAt(0).toUpperCase() : 'JD'}</span>
                             )}
                         </div>
                     </div>
@@ -586,6 +716,12 @@ const Dashboard = ({ activeTab: initialTab }) => {
                                     </div>
                                 )}
                             </>
+                        ) : activeStaff && !(activeStaff.pages || ['Orders']).includes(activeTab) ? (
+                            <div style={{ textAlign: 'center', padding: '100px 20px', color: '#6b7280' }}>
+                                <ShieldCheck size={64} color="#ef4444" style={{ marginBottom: '16px' }} />
+                                <h1 style={{ fontSize: '32px', fontWeight: '800', color: '#000', marginBottom: '12px' }}>Access Restricted</h1>
+                                <p style={{ fontSize: '16px' }}>Your staff profile does not have permission to view this module.</p>
+                            </div>
                         ) : activeTab === 'My Store' ? (
                             <MyStore onSwitch={() => navigate('/store')} />
                         ) : activeTab === 'Stories' ? (
@@ -596,6 +732,14 @@ const Dashboard = ({ activeTab: initialTab }) => {
                             <Billing />
                         ) : activeTab === 'Settings' ? (
                             <Settings />
+                        ) : activeTab === 'Team' ? (
+                            <StaffManagement storeId={storeId} />
+                        ) : activeTab === 'NoAccess' ? (
+                            <div style={{ textAlign: 'center', padding: '100px 20px', color: '#6b7280' }}>
+                                <ShieldCheck size={64} color="#ef4444" style={{ marginBottom: '16px' }} />
+                                <h1 style={{ fontSize: '32px', fontWeight: '800', color: '#000', marginBottom: '12px' }}>Access Restricted</h1>
+                                <p style={{ fontSize: '16px' }}>Your staff profile does not have permission to view this module.</p>
+                            </div>
                         ) : (
                             <div style={{ textAlign: 'center', padding: '100px 20px', color: '#6b7280' }}>
                                 <h1 style={{ fontSize: '32px', fontWeight: '800', color: '#000', marginBottom: '12px', letterSpacing: '-0.02em' }}>{activeTab}</h1>
@@ -606,6 +750,37 @@ const Dashboard = ({ activeTab: initialTab }) => {
                 </main>
             </div>
             {showQR && storeData && <QRTemplateModal store={storeData} onClose={() => setShowQR(false)} />}
+
+            {showLoginModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+                    <div style={{ background: 'white', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                        <div style={{ width: '64px', height: '64px', background: '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto', overflow: 'hidden' }}>
+                            {storeData?.logo_url ? (
+                                <img src={storeData.logo_url} alt="Store Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <UserCircle2 size={32} color="#3b82f6" />
+                            )}
+                        </div>
+                        <h2 style={{ fontSize: '24px', fontWeight: '800', margin: '0 0 8px 0', color: '#0f172a' }}>Staff Access</h2>
+                        <p style={{ color: '#64748b', marginBottom: '32px' }}>Enter your 4-digit PIN to switch profiles.</p>
+
+                        <input
+                            type="password"
+                            value={loginPin}
+                            onChange={(e) => setLoginPin(e.target.value.replace(/\D/g, '').substring(0, 4))}
+                            placeholder="••••"
+                            style={{ width: '100%', padding: '16px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '24px', textAlign: 'center', letterSpacing: '0.4em', marginBottom: '16px', outline: 'none' }}
+                            autoFocus
+                        />
+                        {staffError && <p style={{ color: '#ef4444', fontSize: '13px', fontWeight: '600', marginBottom: '16px' }}>{staffError}</p>}
+
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                            <button onClick={() => { setShowLoginModal(false); setLoginPin(''); setStaffError(''); }} style={{ flex: 1, padding: '14px', borderRadius: '14px', border: '1px solid #e2e8f0', background: 'white', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                            <button onClick={handleStaffLogin} style={{ flex: 1, padding: '14px', borderRadius: '14px', border: 'none', background: '#0f172a', color: 'white', fontWeight: '600', cursor: 'pointer' }}>Login</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

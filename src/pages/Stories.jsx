@@ -14,7 +14,8 @@ const uploadImage = async (file, bucket = 'store-assets') => {
             .from(bucket)
             .upload(filePath, file, {
                 cacheControl: '3600',
-                upsert: false
+                upsert: false,
+                contentType: file.type
             });
 
         if (uploadError) throw uploadError;
@@ -58,13 +59,30 @@ const Stories = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { data: store } = await supabase
-                .from('stores')
-                .select('id')
-                .eq('user_id', user.id)
-                .single();
+            // Fetch if user is staff of any stores
+            const { data: teamAssignments } = await supabase
+                .from('team_members')
+                .select('store_id')
+                .eq('user_id', user.id);
 
-            if (store) {
+            let storesQuery = supabase.from('stores').select('id');
+            if (teamAssignments && teamAssignments.length > 0) {
+                const storeIds = teamAssignments.map(t => t.store_id);
+                if (storeIds.length) {
+                    storesQuery = storesQuery.or(`user_id.eq.${user.id},id.in.(${storeIds.join(',')})`);
+                } else {
+                    storesQuery = storesQuery.eq('user_id', user.id);
+                }
+            } else {
+                storesQuery = storesQuery.eq('user_id', user.id);
+            }
+
+            const { data: stores } = await storesQuery.order('created_at', { ascending: true });
+
+            if (stores && stores.length > 0) {
+                const savedId = localStorage.getItem('hoteltec_active_store');
+                const store = savedId ? (stores.find(s => s.id === savedId) || stores[0]) : stores[0];
+
                 setStoreId(store.id);
 
                 // Fetch Stories
@@ -102,7 +120,8 @@ const Stories = () => {
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            const type = file.type.startsWith('video') ? 'video' : 'image';
+            const isVideo = file.type.startsWith('video') || !!file.name.toLowerCase().match(/\.(mp4|mov|webm|avi|mkv|m4v)$/);
+            const type = isVideo ? 'video' : 'image';
             const url = URL.createObjectURL(file);
             setPreviewUrl(url);
             setPreviewType(type);
@@ -507,7 +526,7 @@ const Stories = () => {
                 {stories.map(story => (
                     <div className="story-card-dash" key={story.id}>
                         {story.type === 'video' ? (
-                            <video src={story.url} className="story-visual-dash" muted autoPlay loop />
+                            <video src={story.url} className="story-visual-dash" muted autoPlay playsInline loop />
                         ) : (
                             <img src={story.url} alt={story.name} className="story-visual-dash" />
                         )}
@@ -538,7 +557,7 @@ const Stories = () => {
                             <div className="visual-upload-preview" onClick={() => fileInputRef.current.click()}>
                                 {previewUrl ? (
                                     previewType === 'video' ? (
-                                        <video src={previewUrl} muted autoPlay loop />
+                                        <video src={previewUrl} muted autoPlay loop playsInline />
                                     ) : (
                                         <img src={previewUrl} alt="preview" />
                                     )
@@ -554,7 +573,7 @@ const Stories = () => {
                                 ref={fileInputRef}
                                 style={{ display: 'none' }}
                                 onChange={handleFileChange}
-                                accept="image/*,video/*"
+                                accept="image/*,video/mp4,video/quicktime,video/webm,video/*"
                             />
                         </div>
 

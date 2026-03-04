@@ -106,13 +106,7 @@ const Signup = () => {
                     </button>
                 </form>
 
-                <div className="divider">
-                    <span>or</span>
-                </div>
 
-                <button className="btn-social">
-                    Continue with Google
-                </button>
 
                 <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '14px', color: '#6b7280' }}>
                     Already have an account? <button type="button" style={{ color: '#000', fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0, font: 'inherit' }} onClick={() => navigate('/login')}>Login</button>
